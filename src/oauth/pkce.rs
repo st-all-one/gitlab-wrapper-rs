@@ -1,28 +1,38 @@
+//! Utilitários PKCE (Proof Key for Code Exchange) para o fluxo de código de autorização OAuth.
+//!
+//! Gera um verificador aleatório e seu respectivo desafio (SHA-256 codificado em base64url)
+//! de acordo com a especificação RFC 7636.
+
 use sha2::{Digest, Sha256};
 
-const VERIFIER_LENGTH: usize = 64;
+const VERIFIER_LENGTH: usize = 32;
 
+/// Gera um verificador PKCE aleatório.
+///
+/// O verificador é uma sequência de 32 bytes aleatórios, codificada em base64url
+/// sem padding, conforme a RFC 7636.
+///
+/// ## Returns
+/// `String` — o verificador PKCE codificado em base64url.
+///
+/// ## Panics
+/// Pode entrar em pânico se a fonte de aleatoriedade do sistema falhar (CSPRNG).
 pub fn generate_code_verifier() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    // Generate random-ish bytes using time + a simple counter
-    // In production, use a proper CSPRNG (e.g., `rand` crate).
-    let seed = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-
-    let mut bytes = Vec::with_capacity(VERIFIER_LENGTH);
-    for i in 0..VERIFIER_LENGTH {
-        // Simple LCG to generate pseudo-random bytes from seed
-        let val = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
-        let shift = (i as u32 % 8) * 8;
-        bytes.push(((val >> shift) & 0xFF) as u8);
-    }
-
+    let mut bytes = vec![0u8; VERIFIER_LENGTH];
+    getrandom::getrandom(&mut bytes).expect("CSPRNG failure");
     base64url_encode(&bytes)
 }
 
+/// Gera o desafio PKCE (`code_challenge`) a partir de um verificador.
+///
+/// Aplica SHA-256 ao verificador fornecido e codifica o hash em base64url
+/// sem padding, conforme a RFC 7636.
+///
+/// ## Params
+/// - `verifier`: O verificador PKCE gerado por [`generate_code_verifier`].
+///
+/// ## Returns
+/// `String` — o desafio PKCE codificado em base64url.
 pub fn generate_code_challenge(verifier: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(verifier.as_bytes());
@@ -30,16 +40,36 @@ pub fn generate_code_challenge(verifier: &str) -> String {
     base64url_encode(&hash)
 }
 
+/// Codifica um slice de bytes em base64url sem padding.
+///
+/// Converte os bytes para base64 usando a implementação interna [`base64_simple`]
+/// e substitui os caracteres `+` e `/` por `-` e `_` respectivamente, removendo
+/// o padding `=` no final, conforme o formato base64url (RFC 4648 §5).
+///
+/// ## Params
+/// - `input`: Slice de bytes a ser codificado.
+///
+/// ## Returns
+/// `String` — representação base64url sem padding.
 fn base64url_encode(input: &[u8]) -> String {
     let b64 = base64_simple(input);
-    // Convert to base64url (no padding)
     b64.replace('+', "-")
         .replace('/', "_")
         .trim_end_matches('=')
         .to_string()
 }
 
-/// Minimal base64 encoder without external dependencies.
+/// Implementação minimalista de codificação base64.
+///
+/// Processa a entrada em blocos de 3 bytes, produzindo 4 caracteres do alfabeto
+/// base64 padrão (`A–Z`, `a–z`, `0–9`, `+`, `/`). Blocos parciais recebem
+/// padding com `=`.
+///
+/// ## Params
+/// - `input`: Slice de bytes a ser codificado.
+///
+/// ## Returns
+/// `String` — representação base64 com padding.
 fn base64_simple(input: &[u8]) -> String {
     const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut result = String::new();

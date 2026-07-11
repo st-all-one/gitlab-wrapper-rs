@@ -13,6 +13,11 @@ use crate::http::pagination::{
 use crate::http::rate_limiter::SlidingWindow;
 use crate::utils::encoding::encode_query_param;
 
+/// Cliente HTTP interno que encapsula chamadas à API do GitLab.
+///
+/// Mantém um `reqwest::blocking::Client`, a configuração resolvida,
+/// e um limitador de taxa (`SlidingWindow`) protegido por `Mutex`
+/// para garantir respeito ao limite de requisições por segundo.
 #[derive(Debug)]
 pub(crate) struct HttpClient {
     client: reqwest::blocking::Client,
@@ -21,6 +26,13 @@ pub(crate) struct HttpClient {
 }
 
 impl HttpClient {
+    /// Cria uma nova instância de `HttpClient`.
+    ///
+    /// ## Params
+    /// - `config`: Configuração resolvida do GitLab (URL, token, timeout, etc.).
+    ///
+    /// ## Returns
+    /// `HttpClient` — nova instância pronta para uso.
     pub fn new(config: ResolvedConfig) -> Self {
         let rate_limiter = SlidingWindow::new(config.max_rps, Duration::from_secs(1));
         let client = reqwest::blocking::Client::builder()
@@ -35,6 +47,21 @@ impl HttpClient {
         }
     }
 
+    /// Monta a URL completa para uma requisição à API do GitLab.
+    ///
+    /// Concatena a URL base, o prefixo da API e o *path* informado,
+    /// adicionando os parâmetros de consulta (*query string*) com
+    /// codificação percentual.
+    ///
+    /// ## Params
+    /// - `path`: Caminho relativo do endpoint (ex.: `"projects"`).
+    /// - `query`: Pares chave-valor dos parâmetros de consulta.
+    ///
+    /// ## Returns
+    /// `Result<String, GitLabError>` — URL completa ou erro de configuração.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` se a URL base for inválida.
     pub(crate) fn build_url(&self, path: &str, query: &[(String, String)]) -> Result<String, GitLabError> {
         let base = self.config.base_url.trim_end_matches('/');
         let path = path.trim_start_matches('/');
@@ -157,6 +184,18 @@ impl HttpClient {
         }))
     }
 
+    /// Executa uma requisição HTTP GET.
+    ///
+    /// ## Params
+    /// - `path`: Caminho relativo do endpoint.
+    /// - `query`: Parâmetros de consulta.
+    /// - `operation`: Identificador textual da operação (para logging).
+    ///
+    /// ## Returns
+    /// `Result<T, GitLabError>` — resposta desserializada no tipo `T`.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de parsing.
     pub fn get<T: serde::de::DeserializeOwned>(
         &self,
         path: &str,
@@ -177,6 +216,22 @@ impl HttpClient {
         self.handle_response(resp, operation)
     }
 
+    /// Executa uma requisição HTTP GET e retorna os dados junto com informações de paginação.
+    ///
+    /// Diferente de `get()`, este método também parseia os cabeçalhos de paginação
+    /// (`x-page`, `x-total`, `x-next-page`, etc.) retornando um `PaginationInfo`.
+    ///
+    /// ## Params
+    /// - `path`: Caminho relativo do endpoint.
+    /// - `query`: Parâmetros de consulta.
+    /// - `operation`: Identificador textual da operação (para logging).
+    ///
+    /// ## Returns
+    /// `Result<(T, PaginationInfo), GitLabError>` — tupla com os dados desserializados
+    /// e as informações de paginação.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de parsing.
     pub fn get_with_headers<T: serde::de::DeserializeOwned>(
         &self,
         path: &str,
@@ -230,6 +285,18 @@ impl HttpClient {
         }))
     }
 
+    /// Executa uma requisição HTTP POST.
+    ///
+    /// ## Params
+    /// - `path`: Caminho relativo do endpoint.
+    /// - `body`: Dados a serem enviados no corpo da requisição (serializado como JSON).
+    /// - `operation`: Identificador textual da operação (para logging).
+    ///
+    /// ## Returns
+    /// `Result<T, GitLabError>` — resposta desserializada no tipo `T`.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de parsing.
     pub fn post<T: serde::de::DeserializeOwned, B: serde::Serialize>(
         &self,
         path: &str,
@@ -250,6 +317,18 @@ impl HttpClient {
         self.handle_response(resp, operation)
     }
 
+    /// Executa uma requisição HTTP PUT.
+    ///
+    /// ## Params
+    /// - `path`: Caminho relativo do endpoint.
+    /// - `body`: Dados a serem enviados no corpo da requisição (serializado como JSON).
+    /// - `operation`: Identificador textual da operação (para logging).
+    ///
+    /// ## Returns
+    /// `Result<T, GitLabError>` — resposta desserializada no tipo `T`.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de parsing.
     pub fn put<T: serde::de::DeserializeOwned, B: serde::Serialize>(
         &self,
         path: &str,
@@ -270,6 +349,18 @@ impl HttpClient {
         self.handle_response(resp, operation)
     }
 
+    /// Executa uma requisição HTTP DELETE.
+    ///
+    /// ## Params
+    /// - `path`: Caminho relativo do endpoint.
+    /// - `query`: Parâmetros de consulta.
+    /// - `operation`: Identificador textual da operação (para logging).
+    ///
+    /// ## Returns
+    /// `Result<(), GitLabError>` — vazio em caso de sucesso.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede ou erro HTTP.
     pub fn delete(
         &self,
         path: &str,
@@ -309,6 +400,18 @@ impl HttpClient {
         ))
     }
 
+    /// Executa uma requisição HTTP DELETE com corpo.
+    ///
+    /// ## Params
+    /// - `path`: Caminho relativo do endpoint.
+    /// - `body`: Dados a serem enviados no corpo da requisição (serializado como JSON).
+    /// - `operation`: Identificador textual da operação (para logging).
+    ///
+    /// ## Returns
+    /// `Result<T, GitLabError>` — resposta desserializada no tipo `T`.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de parsing.
     pub fn delete_with_body<T: serde::de::DeserializeOwned, B: serde::Serialize>(
         &self,
         path: &str,
@@ -329,6 +432,21 @@ impl HttpClient {
         self.handle_response(resp, operation)
     }
 
+    /// Executa uma requisição HTTP GET e retorna o corpo como bytes brutos.
+    ///
+    /// Útil para *downloads* de arquivos ou endpoints que retornam conteúdo
+    /// não-JSON (ex.: conteúdo de um repositório).
+    ///
+    /// ## Params
+    /// - `path`: Caminho relativo do endpoint.
+    /// - `query`: Parâmetros de consulta.
+    /// - `operation`: Identificador textual da operação (para logging).
+    ///
+    /// ## Returns
+    /// `Result<Vec<u8>, GitLabError>` — corpo da resposta como bytes.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de leitura.
     pub fn get_raw(
         &self,
         path: &str,
@@ -380,6 +498,21 @@ impl HttpClient {
         ))
     }
 
+    /// Executa uma requisição HTTP GET e retorna o corpo como texto bruto.
+    ///
+    /// Similar a `get_raw`, mas retorna uma `String` em vez de bytes.
+    /// Útil para endpoints que retornam texto simples.
+    ///
+    /// ## Params
+    /// - `path`: Caminho relativo do endpoint.
+    /// - `query`: Parâmetros de consulta.
+    /// - `operation`: Identificador textual da operação (para logging).
+    ///
+    /// ## Returns
+    /// `Result<String, GitLabError>` — corpo da resposta como texto.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de leitura.
     pub fn get_raw_text(
         &self,
         path: &str,
@@ -431,6 +564,21 @@ impl HttpClient {
         ))
     }
 
+    /// Auto-pagina todas as páginas de um endpoint paginado (paginação baseada em página).
+    ///
+    /// Itera sobre as páginas utilizando o parâmetro `page` e o cabeçalho `x-next-page`
+    /// até que não haja mais páginas disponíveis.
+    ///
+    /// ## Params
+    /// - `path`: Caminho relativo do endpoint.
+    /// - `query`: Parâmetros de consulta base (sem `page`/`per_page`).
+    /// - `operation`: Identificador textual da operação (para logging).
+    ///
+    /// ## Returns
+    /// `Result<Vec<T>, GitLabError>` — lista com todos os itens de todas as páginas.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de parsing.
     pub fn paginate_all<T: serde::de::DeserializeOwned>(
         &self,
         path: &str,
@@ -443,6 +591,42 @@ impl HttpClient {
                 let mut paged_query = query.to_vec();
                 paged_query.push(("per_page".to_string(), DEFAULT_PER_PAGE.to_string()));
                 paged_query.push(("page".to_string(), page.to_string()));
+                self.get_with_headers(path, &paged_query, operation)
+            },
+            operation,
+        )
+    }
+
+    #[allow(dead_code)]
+    /// Auto-pagina todas as páginas de um endpoint com paginação por cursor (*keyset*).
+    ///
+    /// Utiliza o cabeçalho `x-next-cursor` para navegar entre as páginas,
+    /// adequado para endpoints do GitLab que suportam keyset pagination.
+    ///
+    /// ## Params
+    /// - `path`: Caminho relativo do endpoint.
+    /// - `query`: Parâmetros de consulta base.
+    /// - `operation`: Identificador textual da operação (para logging).
+    ///
+    /// ## Returns
+    /// `Result<Vec<T>, GitLabError>` — lista com todos os itens de todas as páginas.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de parsing.
+    pub fn keyset_paginate_all<T: serde::de::DeserializeOwned>(
+        &self,
+        path: &str,
+        query: &[(String, String)],
+        operation: &str,
+    ) -> Result<Vec<T>, GitLabError> {
+        use crate::http::pagination::keyset_paginate_all as auto_keyset;
+        auto_keyset(
+            |cursor: Option<&str>| {
+                let mut paged_query = query.to_vec();
+                paged_query.push(("pagination".to_string(), "keyset".to_string()));
+                if let Some(c) = cursor {
+                    paged_query.push(("id_after".to_string(), c.to_string()));
+                }
                 self.get_with_headers(path, &paged_query, operation)
             },
             operation,

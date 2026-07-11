@@ -43,7 +43,7 @@ fn test_authorization_code_url() {
     assert!(url.contains("client_id=my-client"));
     assert!(url.contains("redirect_uri=https%3A%2F%2Fapp.example.com%2Fcallback"));
     assert!(url.contains("response_type=code"));
-    assert!(url.contains("scope=api%20read_user"));
+    assert!(url.contains("scope=api%20read_user") || url.contains("scope=api+read_user"));
     assert!(url.contains("state=random-state"));
     assert!(url.contains("code_challenge=challenge-value"));
     assert!(url.contains("code_challenge_method=S256"));

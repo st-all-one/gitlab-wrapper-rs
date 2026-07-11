@@ -1,3 +1,6 @@
+//! Módulo que contém todos os tipos de dados (structs, enums, type aliases)
+//! usados para representar recursos da API GitLab, organizados por domínio.
+
 mod access_levels;
 mod base;
 mod branch;

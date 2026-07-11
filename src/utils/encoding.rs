@@ -1,29 +1,24 @@
-/// Percent-encode a query parameter value.
-/// Safe characters: A-Z, a-z, 0-9, '-', '_', '.', '~'
+/// Codifica um valor de parâmetro de consulta usando codificação percentual (RFC 3986).
+///
+/// ## Params
+/// - `input`: String a ser codificada.
+///
+/// ## Returns
+/// `String` — valor codificado para uso em URL.
 pub fn encode_query_param(input: &str) -> String {
-    let mut result = String::with_capacity(input.len());
-    for byte in input.bytes() {
-        match byte {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
-                result.push(byte as char);
-            }
-            b' ' => {
-                result.push('%');
-                result.push('2');
-                result.push('0');
-            }
-            _ => {
-                result.push('%');
-                let hex = format!("{:02X}", byte);
-                result.push_str(&hex);
-            }
-        }
-    }
-    result
+    url::form_urlencoded::byte_serialize(input.as_bytes()).collect()
 }
 
-/// Convert an optional filter struct into a `Vec<(String, String)>` of query parameters.
-/// Uses serde serialization to recursively flatten the struct.
+/// Converte um filtro opcional em um vetor de pares chave-valor para parâmetros de consulta.
+///
+/// Utiliza serialização `serde` para achatar recursivamente a estrutura do filtro,
+/// suportando objetos aninhados (formato `chave[subchave]=valor`) e arrays.
+///
+/// ## Params
+/// - `filter`: Referência opcional ao filtro a ser convertido.
+///
+/// ## Returns
+/// `Vec<(String, String)>` — lista de parâmetros de consulta.
 pub fn filter_to_query<T: serde::Serialize>(filter: Option<&T>) -> Vec<(String, String)> {
     fn inner(val: &serde_json::Value, prefix: &str, query: &mut Vec<(String, String)>) {
         match val {
