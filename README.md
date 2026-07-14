@@ -327,12 +327,6 @@ test result: ok. 36 passed; 0 failed
 
 ## ⚠️ Limitações Conhecidas
 
-### Sem suporte a multipart (upload de arquivos)
-
-O `reqwest` async não suporta multipart de forma ergonômica através deste wrapper.
-Métodos como `upload_avatar()` retornam `Err(GitLabError::Config(...))`.
-Use o cliente HTTP diretamente com `reqwest::Client` para uploads.
-
 ### Paginação eager (não lazy)
 
 Diferente do wrapper TypeScript que oferece iteradores lazy (`AsyncIterableIterator`),

@@ -189,25 +189,63 @@ impl ProjectsResource {
         self.http.post(&path, &serde_json::Value::Null, "projects.fork").await
     }
 
-    /// Faz upload de avatar para um projeto.
+    /// Faz upload genérico de arquivo para um projeto.
+    ///
+    /// Envia um arquivo via multipart para `POST /projects/:id/uploads`.
+    /// Útil para anexar arquivos a issues, MRs, etc. O retorno inclui
+    /// URL relativa e código markdown para referência.
     ///
     /// ## Params
-    /// - `_project_id`: ID do projeto no GitLab.
-    /// - `_file_path`: Caminho do arquivo de avatar.
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `file_name`: Nome do arquivo (ex.: "relatorio.pdf").
+    /// - `data`: Conteúdo do arquivo em bytes.
     ///
     /// ## Returns
-    /// `Result<Project, GitLabError>` — erro, pois upload de avatar requer multipart.
+    /// `Result<UploadResult, GitLabError>` — dados do upload.
     ///
     /// ## Errors
-    /// Retorna `GitLabError::Config` informando que multipart não é suportado.
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), ou erro de validação (422).
+    pub async fn upload_file(
+        &self,
+        project_id: u64,
+        file_name: &str,
+        data: Vec<u8>,
+    ) -> Result<UploadResult, GitLabError> {
+        let path = format!("projects/{}/uploads", project_id);
+        let part = reqwest::multipart::Part::bytes(data)
+            .file_name(file_name.to_string());
+        let form = reqwest::multipart::Form::new().part("file", part);
+        self.http.post_multipart(&path, form, "projects.upload_file").await
+    }
+
+    /// Faz upload de avatar para um projeto.
+    ///
+    /// Envia uma imagem via multipart para `PUT /projects/:id`, definindo
+    /// o avatar do projeto. Formatos aceitos: PNG, JPEG, GIF.
+    ///
+    /// ## Params
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `file_name`: Nome do arquivo (ex.: "logo.png").
+    /// - `data`: Conteúdo da imagem em bytes.
+    ///
+    /// ## Returns
+    /// `Result<Project, GitLabError>` — dados do projeto atualizado.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn upload_avatar(
         &self,
-        _project_id: u64,
-        _file_path: &str,
+        project_id: u64,
+        file_name: &str,
+        data: Vec<u8>,
     ) -> Result<Project, GitLabError> {
-        Err(GitLabError::Config(
-            "Avatar upload requires multipart - not supported via the HTTP client".into(),
-        ))
+        let path = format!("projects/{}", project_id);
+        let part = reqwest::multipart::Part::bytes(data)
+            .file_name(file_name.to_string());
+        let form = reqwest::multipart::Form::new().part("avatar", part);
+        self.http.post_multipart(&path, form, "projects.upload_avatar").await
     }
 
     /// Transfere um projeto para outro namespace.

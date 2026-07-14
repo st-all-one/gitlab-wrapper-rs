@@ -59,6 +59,36 @@ pub struct TaskCompletionStatus {
     pub completed_count: Option<u32>,
 }
 
+/// Resposta da API GitLab para upload genérico de arquivos
+/// (`POST /projects/:id/uploads`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct UploadResult {
+    /// Texto alternativo para o arquivo.
+    pub alt: Option<String>,
+    /// URL relativa do arquivo carregado.
+    pub url: Option<String>,
+    /// Código markdown para referenciar o arquivo.
+    pub markdown: Option<String>,
+    /// Nome original do arquivo.
+    pub file_name: Option<String>,
+}
+
+/// Resposta da API GitLab para upload de anexo em wiki
+/// (`POST /projects/:id/wikis/attachments`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct WikiAttachmentResult {
+    /// Nome do arquivo carregado.
+    pub file_name: Option<String>,
+    /// Caminho do arquivo no repositório.
+    pub file_path: Option<String>,
+    /// Branch onde o arquivo foi carregado.
+    pub branch: Option<String>,
+    /// Link para o arquivo.
+    pub link: Option<String>,
+}
+
 /// Parâmetros de paginação para listagem de recursos na API GitLab.
 /// Use `..Default::default()` para valores padrão.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

@@ -278,6 +278,39 @@ impl HttpClient {
         self.handle_response(resp, operation).await
     }
 
+    /// Executa uma requisição HTTP POST com `multipart/form-data`.
+    ///
+    /// Útil para upload de arquivos (avatar, anexos de wiki, etc.).
+    /// O `Content-Type` é definido automaticamente pelo reqwest com o
+    /// boundary apropriado — **não** inclua `Content-Type` nos headers.
+    pub async fn post_multipart<T: serde::de::DeserializeOwned>(
+        &self,
+        path: &str,
+        form: reqwest::multipart::Form,
+        operation: &str,
+    ) -> Result<T, GitLabError> {
+        self.rate_limiter.acquire().await;
+        let url = self.build_url(path, &[])?;
+        // Apenas headers de autenticação — sem Content-Type (reqwest define multipart boundary)
+        let mut headers = self.build_headers(None)?;
+        headers.remove(reqwest::header::CONTENT_TYPE);
+
+        tracing::debug!(target: "gitlab_wrapper::http", "POST multipart {} - {}", operation, path);
+
+        let resp = self.client
+            .post(&url)
+            .headers(headers)
+            .multipart(form)
+            .send()
+            .await
+            .map_err(|e| {
+                tracing::error!(target: "gitlab_wrapper::http", "POST multipart {} failed: {}", operation, e);
+                GitLabError::from(e)
+            })?;
+
+        self.handle_response(resp, operation).await
+    }
+
     /// Executa uma requisição HTTP PUT.
     pub async fn put<T: serde::de::DeserializeOwned, B: serde::Serialize>(
         &self,

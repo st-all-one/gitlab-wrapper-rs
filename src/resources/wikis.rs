@@ -112,22 +112,30 @@ impl WikisResource {
 
     /// Faz upload de um anexo para a wiki.
     ///
+    /// Envia um arquivo via multipart para `POST /projects/:id/wikis/attachments`.
+    /// O anexo fica disponível para referência em páginas da wiki.
+    ///
     /// ## Params
-    /// - `_project_id`: ID do projeto no GitLab.
-    /// - `_file_path`: Caminho do arquivo a ser enviado.
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `file_name`: Nome do arquivo (ex.: "diagrama.png").
+    /// - `data`: Conteúdo do arquivo em bytes.
     ///
     /// ## Returns
-    /// `Result<serde_json::Value, GitLabError>` — erro, pois upload de anexo requer multipart.
+    /// `Result<WikiAttachmentResult, GitLabError>` — dados do anexo carregado.
     ///
     /// ## Errors
-    /// Retorna `GitLabError::Config` informando que multipart não é suportado.
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn upload_attachment(
         &self,
-        _project_id: u64,
-        _file_path: &str,
-    ) -> Result<serde_json::Value, GitLabError> {
-        Err(GitLabError::Config(
-            "Wiki attachment upload requires multipart - not supported via the HTTP client".into(),
-        ))
+        project_id: u64,
+        file_name: &str,
+        data: Vec<u8>,
+    ) -> Result<WikiAttachmentResult, GitLabError> {
+        let path = format!("projects/{}/wikis/attachments", project_id);
+        let part = reqwest::multipart::Part::bytes(data)
+            .file_name(file_name.to_string());
+        let form = reqwest::multipart::Form::new().part("file", part);
+        self.http.post_multipart(&path, form, "wikis.upload_attachment").await
     }
 }

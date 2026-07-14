@@ -475,6 +475,7 @@ pub struct OAuthErrorResponse {
 ## Notas Finais
 
 - **Async (tokio):** O wrapper usa `reqwest` com runtime tokio. Todas as chamadas HTTP são `async fn` e exigem `.await`.
+- **Multipart:** Upload de arquivos via `post_multipart()` no `HttpClient`, exposto em `projects.upload_file()`, `projects.upload_avatar()` e `wikis.upload_attachment()`.
 - **Tipos:** Todas as structs de domínio derivam `Debug, Clone, Serialize, Deserialize`.
 - **Filtros:** Structs de filtro implementam `Default` para construção parcial com `..Default::default()`.
 - **Re-export:** Todas as structs de tipo e resource são re-exportadas de `gitlab_wrapper`.
