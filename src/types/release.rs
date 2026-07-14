@@ -82,7 +82,8 @@ pub struct ReleaseEvidence {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ReleaseLinks {
-    /// URL da própria release — renomeado de `self` para `self_` devido a palavra reservada.
+    /// URL da própria release.
+    #[serde(rename = "self")]
     pub self_: Option<String>,
     /// URL de edição da release.
     pub edit_url: Option<String>,

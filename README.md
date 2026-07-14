@@ -10,17 +10,17 @@
 
 </div>
 
-**`gitlab-wrapper-rs`** é um wrapper puramente back-end para a API REST do GitLab v4, construído em **Rust assíncrono (tokio + reqwest)** com foco em segurança de tipos, rastreabilidade via UUID v7 e cobertura completa de todos os 25 recursos da API. Cada instância é isolada, imutável e `Send + Sync` — pode ser compartilhada entre tasks tokio sem risco de contaminação de estado.
+**`gitlab-wrapper-rs`** é um wrapper puramente back-end para a API REST do GitLab v4, construído em **Rust assíncrono (tokio + reqwest)** com foco em segurança de tipos, rastreabilidade via UUID v7 e cobertura de **93 recursos da API** (projetos, grupos, issues, MRs, pipelines, CI/CD, templates, pacotes, boards, epics, vulnerabilidades, etc.). Cada instância é isolada, imutável e `Send + Sync` — pode ser compartilhada entre tasks tokio sem risco de contaminação de estado.
 
 ---
 
 ## 📖 Documentação
 
-- [Guia de Uso](./wiki/usage-guide.md) — Exemplos completos para todos os 25 recursos
+- [Guia de Uso](./wiki/usage-guide.md) — Exemplos completos para todos os 93 recursos
 - [Getting Started](./wiki/getting-started.md) — Instalação, configuração, primeira chamada
 - [Guia de Integração](./wiki/integration-guide.md) — DI, retry, cache, OAuth, axum
 - [Particularidades da API](./wiki/particularities.md) — `id` vs `iid`, encoding, sudo, rate limiting
-- [Referência da API](./wiki/api-reference.md) — Lista completa de structs e métodos
+- [Referência da API](./wiki/api-reference.md) — Lista completa de structs e métodos (93 resources)
 - [Catálogo de Erros](./wiki/error/errors.md) — Erros RFC 7807 com UUID v7
 
 ---
@@ -115,20 +115,21 @@ async fn handle(gl: &GitLabClient) -> Result<(), GitLabError> {
 
 ## 🌐 Recursos Cobertos
 
-Todos os **25 recursos** com **~195 métodos** públicos.
+Todos os **93 recursos** com **~400 métodos** públicos.
 
 | Resource | list | get | create | update | delete | Métodos Extras |
 |---|---|---|---|---|---|---|
-| **Projects** | ✅ | ✅ | ✅ | ✅ | ✅ | `archive`, `unarchive`, `fork`, `transfer`, `list_all` |
-| **Groups** | ✅ | ✅ | ✅ | ✅ | ✅ | `subgroups`, `descendant_groups`, `projects` |
+| **Projects** | ✅ | ✅ | ✅ | ✅ | ✅ | `archive`, `unarchive`, `fork`, `transfer`, `list_all`, `star`, `unstar`, `list_forks`, `languages`, `share`, `unshare` |
+| **Groups** | ✅ | ✅ | ✅ | ✅ | ✅ | `subgroups`, `descendant_groups`, `projects`, `shared_projects`, `saml_users`, `provisioned_users` |
 | **Users** | ✅ | ✅ | ✅ | ✅ | ✅ | `get_current`, `status`, `set_status`, `preferences`, `deactivate`, `activate`, `ban`, `unban` |
-| **Issues** | ✅ | ✅ | ✅ | ✅ | ✅ | `subscribe`, `unsubscribe`, `move`, time tracking, `get_by_group` |
-| **Merge Requests** | ✅ | ✅ | ✅ | ✅ | ✅ | `merge`, `approve`, `unapprove`, `rebase`, `commits`, `changes`, `list_by_group` |
+| **Issues** | ✅ | ✅ | ✅ | ✅ | ✅ | `subscribe`, `unsubscribe`, `move`, time tracking, `get_by_group`, `reorder`, `closed_by`, `participants`, `related_merge_requests` |
+| **Merge Requests** | ✅ | ✅ | ✅ | ✅ | ✅ | `merge`, `approve`, `unapprove`, `rebase`, `commits`, `changes`, `list_by_group`, `pipelines`, `participants`, `subscription`, time tracking |
 | **Branches** | ✅ | ✅ | ✅ | — | ✅ | `delete_merged` |
-| **Commits** | ✅ | ✅ | ✅ | — | — | `cherry_pick`, `revert`, `diff`, `refs`, `comments` |
-| **Tags** | ✅ | ✅ | ✅ | — | ✅ | — |
+| **Commits** | ✅ | ✅ | ✅ | — | — | `cherry_pick`, `revert`, `diff`, `refs`, `comments`, `statuses`, `signature`, `merge_requests` |
+| **Tags** | ✅ | ✅ | ✅ | — | ✅ | `signature` |
 | **Repository Files** | — | ✅ | ✅ | ✅ | ✅ | `raw`, `blame` |
-| **Wikis** | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| **Repository Tree** | ✅ | ✅ | — | — | — | — |
+| **Wikis** | ✅ | ✅ | ✅ | ✅ | ✅ | `upload_attachment` |
 | **Labels** | ✅ | ✅ | ✅ | ✅ | ✅ | CRUD projeto + grupo, `promote_project_label` |
 | **Milestones** | ✅ | ✅ | ✅ | ✅ | ✅ | CRUD projeto + grupo, list issues/MRs |
 | **Members** | ✅ | ✅ | ✅ | ✅ | ✅ | CRUD projeto + grupo, inherited members |
@@ -137,13 +138,67 @@ Todos os **25 recursos** com **~195 métodos** públicos.
 | **Todos** | ✅ | — | — | — | ✅ | `mark_all_done` |
 | **Search** | ✅ | — | — | — | — | `global`, `in_group`, `in_project` |
 | **Events** | ✅ | — | — | — | — | `list_user_events`, `list_project_events` |
-| **Pipelines** | ✅ | ✅ | ✅ | — | ✅ | `retry`, `cancel`, `variables`, `test_report` |
+| **Pipelines** | ✅ | ✅ | ✅ | — | ✅ | `retry`, `cancel`, `variables`, `test_report`, `test_report_summary` |
 | **Jobs** | ✅ | ✅ | — | — | — | `trace`, `artifacts`, `cancel`, `retry`, `play`, `erase` |
 | **Pipeline Schedules** | ✅ | ✅ | ✅ | ✅ | ✅ | `take_ownership`, `create/update/delete_variable` |
+| **Pipeline Triggers** | ✅ | ✅ | ✅ | ✅ | ✅ | `take_ownership` |
 | **Runners** | ✅ | ✅ | ✅ | ✅ | ✅ | `list_jobs` |
-| **Releases** | ✅ | ✅ | ✅ | ✅ | ✅ | `create_link`, `delete_link` |
+| **Releases** | ✅ | ✅ | ✅ | ✅ | ✅ | `create/delete/list/get/update_link`, `get_latest`, `download_asset` |
 | **Deploy Keys** | ✅ | ✅ | ✅ | ✅ | ✅ | `enable` |
 | **Environments** | ✅ | ✅ | ✅ | ✅ | ✅ | `stop` |
+| **Project Hooks** | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| **Group Hooks** | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| **CI/CD Variables** | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| **Group Variables** | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| **Protected Branches** | ✅ | ✅ | ✅ | — | ✅ | — |
+| **Protected Tags** | ✅ | ✅ | ✅ | — | ✅ | — |
+| **Protected Environments** | ✅ | ✅ | ✅ | — | ✅ | — |
+| **Emoji Reactions** | ✅ | ✅ | ✅ | — | ✅ | issue, MR, snippet |
+| **Resource Events** | ✅ | — | — | — | — | state, label, milestone, weight, iteration |
+| **Draft Notes** | ✅ | — | ✅ | ✅ | ✅ | `publish` |
+| **Issue Links** | ✅ | — | ✅ | — | ✅ | — |
+| **Epics** | ✅ | ✅ | ✅ | ✅ | ✅ | assign/unassign issues, child epics, related epics |
+| **Snippets** | ✅ | ✅ | ✅ | ✅ | ✅ | `raw` |
+| **Feature Flags** | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| **Freeze Periods** | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| **Remote Mirrors** | ✅ | — | ✅ | ✅ | — | — |
+| **Import/Export** | — | ✅ | ✅ | — | — | `schedule_export`, `download_export`, `import`, `status` |
+| **Integrations** | ✅ | — | — | ✅ | ✅ | — |
+| **Badges** | ✅ | ✅ | ✅ | ✅ | ✅ | CRUD projeto + grupo |
+| **Access Requests** | ✅ | — | ✅ | ✅ | ✅ | — |
+| **Access Tokens** | ✅ | ✅ | ✅ | — | ✅ | CRUD projeto + grupo |
+| **Personal Access Tokens** | ✅ | ✅ | — | — | ✅ | — |
+| **Deploy Tokens** | ✅ | — | ✅ | — | ✅ | projeto + grupo + standalone |
+| **Topics** | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| **Keys** | ✅ | — | — | — | — | `get_by_fingerprint` |
+| **Boards** | ✅ | ✅ | — | — | — | lists CRUD (projeto + grupo) |
+| **Deployments** | ✅ | ✅ | — | — | — | `approve` |
+| **Merge Trains** | ✅ | ✅ | — | — | — | — |
+| **Namespaces** | ✅ | ✅ | — | — | — | — |
+| **Notifications** | ✅ | — | — | ✅ | — | global + projeto + grupo |
+| **Custom Attributes** | ✅ | ✅ | ✅ | ✅ | ✅ | CRUD projeto + grupo + user |
+| **Invitations** | ✅ | — | ✅ | — | ✅ | projeto + grupo |
+| **Markdown** | — | — | ✅ | — | — | `render` |
+| **Issue Statistics** | ✅ | — | — | — | — | global + projeto + grupo |
+| **Error Tracking** | — | — | — | ✅ | — | settings get/update |
+| **External Status Checks** | ✅ | — | ✅ | — | ✅ | — |
+| **Container Registry** | ✅ | — | — | — | ✅ | list repos/tags |
+| **Packages** | ✅ | ✅ | — | — | ✅ | `list_files` |
+| **Package Types** | ✅ | — | — | — | — | Maven, NPM, PyPI, NuGet, RubyGems, Composer, Conan, Go, Helm, Debian, Terraform |
+| **Pages** | ✅ | — | — | ✅ | — | — |
+| **Vulnerabilities** | ✅ | ✅ | — | — | — | findings, exports |
+| **Audit Events** | ✅ | ✅ | — | — | — | — |
+| **Broadcast Messages** | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| **System Hooks** | ✅ | ✅ | ✅ | — | ✅ | — |
+| **License** | ✅ | — | ✅ | — | ✅ | — |
+| **Settings** | ✅ | — | — | ✅ | — | application settings |
+| **CI Lint** | — | — | ✅ | — | — | `validate` |
+| **Templates** | ✅ | ✅ | — | — | — | Dockerfile, Gitignore, CI YAML, Licenças |
+| **Project Templates** | ✅ | ✅ | — | — | — | — |
+| **Job Artifacts** | — | — | — | — | ✅ | `keep`, `download_by_ref`, `delete_all` |
+| **Group Wikis** | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| **Group Push Rules** | ✅ | — | ✅ | ✅ | ✅ | — |
+| **Group Iterations** | ✅ | — | — | — | — | — |
 
 ---
 
@@ -166,7 +221,7 @@ let gl_user  = GitLabClient::new(GitLabConfig {
 
 ### Segurança de Tipos com `serde`
 
-Todas as ~200 structs de domínio derivam `Serialize + Deserialize` com `#[serde(rename_all = "snake_case")]` e `skip_serializing_if = "Option::is_none"`. Isso garante que apenas campos preenchidos sejam serializados e que o mapeamento JSON-Rust seja exato.
+Todas as ~350 structs de domínio derivam `Serialize + Deserialize` com `#[serde(rename_all = "snake_case")]` e `skip_serializing_if = "Option::is_none"`. Isso garante que apenas campos preenchidos sejam serializados e que o mapeamento JSON-Rust seja exato.
 
 ### Sistema de Erros RFC 7807 com UUID v7
 
@@ -279,6 +334,10 @@ cargo test --test client_test    # testes do cliente HTTP
 cargo test --test errors_test    # testes do sistema de erros
 cargo test --test oauth_test     # testes OAuth (PKCE, auth URL)
 cargo clippy                     # lints (0 warnings)
+
+# Teste de integração real contra GitLab.com:
+export GITLAB_TOKEN="glpat-xxxx"
+cargo run --example comprehensive_test  # 152 testes
 ```
 
 ```
@@ -317,11 +376,11 @@ test result: ok. 36 passed; 0 failed
 | **Erros** | Classe `GitLabWrapperError` | Enum `GitLabError` com `match` |
 | **Null safety** | `undefined` / `null` | `Option<T>` com `unwrap`/`?` |
 | **Config** | Objeto `create({...})` | Struct `GitLabConfig + Default` |
-| **Resources** | 25 classes lazy via getter | 25 structs via `Deref<ResourceGroup>` |
+| **Resources** | 25 classes via getter | 93 structs via `Deref<ResourceGroup>` |
 | **OAuth PKCE** | `crypto.subtle` | `getrandom` CSPRNG |
 | **Thread safety** | `EventLoop` single-thread | `Send + Sync` nativo |
-| **Testes** | 28 testes (Deno) | 36 testes (wiremock) |
-| **Maturidade** | ~195 métodos públicos | ~195 métodos públicos |
+| **Testes** | 28 testes (Deno) | 36 unitários + 152 integração real |
+| **Maturidade** | ~195 métodos públicos | ~400 métodos públicos |
 
 ---
 

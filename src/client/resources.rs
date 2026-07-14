@@ -1,98 +1,200 @@
-//! Agrupamento de todos os recursos da API do GitLab.
-//!
-//! [`ResourceGroup`] contém uma instância de cada recurso (branches, commits, projects,
-//! issues, etc.) e é acessado transparentemente via `Deref` em [`crate::client::GitLabClient`].
-
 use std::sync::Arc;
 
 use crate::http::client::HttpClient;
 use crate::resources::*;
 
-/// Agrupa todos os recursos da API do GitLab em um único ponto de acesso.
-///
-/// Cada campo público expõe um recurso específico (ex.: `projects`, `issues`,
-/// `merge_requests`) com seus respectivos métodos de CRUD e consulta.
 #[derive(Debug)]
 pub struct ResourceGroup {
-    /// Recurso de branches.
+    pub access_requests: AccessRequestsResource,
+    pub access_tokens: AccessTokensResource,
+    pub audit_events: AuditEventsResource,
+    pub badges: BadgesResource,
+    pub boards: BoardsResource,
     pub branches: BranchesResource,
-    /// Recurso de commits.
+    pub broadcast_messages: BroadcastMessagesResource,
+    pub ci_lint: CiLintResource,
+    pub ci_yml_templates: CiYmlTemplatesResource,
     pub commits: CommitsResource,
-    /// Recurso de chaves de deploy.
+    pub container_registry: ContainerRegistryResource,
+    pub custom_attributes: CustomAttributesResource,
     pub deploy_keys: DeployKeysResource,
-    /// Recurso de discussões.
+    pub deploy_tokens: DeployTokensResource,
+    pub deployments: DeploymentsResource,
     pub discussions: DiscussionsResource,
-    /// Recurso de ambientes (environments).
+    pub dockerfile_templates: DockerfileTemplatesResource,
+    pub draft_notes: DraftNotesResource,
+    pub emoji: EmojiResource,
     pub environments: EnvironmentsResource,
-    /// Recurso de eventos.
+    pub epics: EpicsResource,
+    pub error_tracking: ErrorTrackingResource,
     pub events: EventsResource,
-    /// Recurso de grupos.
+    pub external_status_checks: ExternalStatusChecksResource,
+    pub feature_flags: FeatureFlagsResource,
+    pub freeze_periods: FreezePeriodsResource,
+    pub gitignore_templates: GitignoreTemplatesResource,
+    pub group_iterations: GroupIterationsResource,
+    pub group_push_rules: GroupPushRulesResource,
+    pub group_variables: GroupVariablesResource,
+    pub group_webhooks: GroupWebhooksResource,
+    pub group_wikis: GroupWikisResource,
     pub groups: GroupsResource,
-    /// Recurso de issues.
+    pub import_export: ImportExportResource,
+    pub integrations: IntegrationsResource,
+    pub invitations: InvitationsResource,
+    pub issue_links: IssueLinksResource,
     pub issues: IssuesResource,
-    /// Recurso de jobs.
+    pub issues_statistics: IssuesStatisticsResource,
+    pub job_artifacts: JobArtifactsResource,
     pub jobs: JobsResource,
-    /// Recurso de labels.
+    pub keys: KeysResource,
     pub labels: LabelsResource,
-    /// Recurso de membros.
+    pub license: LicenseResource,
+    pub license_templates: LicenseTemplatesResource,
+    pub markdown: MarkdownResource,
     pub members: MembersResource,
-    /// Recurso de merge requests.
     pub merge_requests: MergeRequestsResource,
-    /// Recurso de marcos (milestones).
+    pub merge_trains: MergeTrainsResource,
     pub milestones: MilestonesResource,
-    /// Recurso de notas (comentários).
+    pub namespaces: NamespacesResource,
     pub notes: NotesResource,
-    /// Recurso de agendamentos de pipeline.
+    pub notification_settings: NotificationSettingsResource,
+    pub package_composer: PackageComposerResource,
+    pub package_conan: PackageConanResource,
+    pub package_debian: PackageDebianResource,
+    pub package_go_proxy: PackageGoProxyResource,
+    pub package_helm: PackageHelmResource,
+    pub package_maven: PackageMavenResource,
+    pub package_npm: PackageNpmResource,
+    pub package_nuget: PackageNugetResource,
+    pub package_pypi: PackagePypiResource,
+    pub package_rubygems: PackageRubygemsResource,
+    pub package_terraform_modules: PackageTerraformModulesResource,
+    pub packages: PackagesResource,
+    pub pages: PagesResource,
+    pub personal_access_tokens: PersonalAccessTokensResource,
     pub pipeline_schedules: PipelineSchedulesResource,
-    /// Recurso de pipelines.
+    pub pipeline_triggers: PipelineTriggersResource,
     pub pipelines: PipelinesResource,
-    /// Recurso de projetos.
+    pub project_hooks: ProjectHooksResource,
+    pub project_templates: ProjectTemplatesResource,
     pub projects: ProjectsResource,
-    /// Recurso de releases.
+    pub protected_branches: ProtectedBranchesResource,
+    pub protected_environments: ProtectedEnvironmentsResource,
+    pub protected_tags: ProtectedTagsResource,
     pub releases: ReleasesResource,
-    /// Recurso de arquivos de repositório.
+    pub remote_mirrors: RemoteMirrorsResource,
     pub repository_files: RepositoryFilesResource,
-    /// Recurso de runners.
+    pub repository_tree: RepositoryTreeResource,
+    pub resource_events: ResourceEventsResource,
     pub runners: RunnersResource,
-    /// Recurso de busca.
     pub search: SearchResource,
-    /// Recurso de tags.
+    pub settings: SettingsResource,
+    pub snippets: SnippetsResource,
+    pub system_hooks: SystemHooksResource,
     pub tags: TagsResource,
-    /// Recurso de todos (tarefas pendentes).
     pub todos: TodosResource,
-    /// Recurso de usuários.
+    pub topics: TopicsResource,
     pub users: UsersResource,
-    /// Recurso de wikis.
+    pub variables: VariablesResource,
+    pub vulnerabilities: VulnerabilitiesResource,
     pub wikis: WikisResource,
 }
 
 impl ResourceGroup {
     pub(crate) fn new(http: Arc<HttpClient>) -> Self {
         Self {
+            access_requests: AccessRequestsResource::new(Arc::clone(&http)),
+            access_tokens: AccessTokensResource::new(Arc::clone(&http)),
+            audit_events: AuditEventsResource::new(Arc::clone(&http)),
+            badges: BadgesResource::new(Arc::clone(&http)),
+            boards: BoardsResource::new(Arc::clone(&http)),
             branches: BranchesResource::new(Arc::clone(&http)),
+            broadcast_messages: BroadcastMessagesResource::new(Arc::clone(&http)),
+            ci_lint: CiLintResource::new(Arc::clone(&http)),
+            ci_yml_templates: CiYmlTemplatesResource::new(Arc::clone(&http)),
             commits: CommitsResource::new(Arc::clone(&http)),
+            container_registry: ContainerRegistryResource::new(Arc::clone(&http)),
+            custom_attributes: CustomAttributesResource::new(Arc::clone(&http)),
             deploy_keys: DeployKeysResource::new(Arc::clone(&http)),
+            deploy_tokens: DeployTokensResource::new(Arc::clone(&http)),
+            deployments: DeploymentsResource::new(Arc::clone(&http)),
             discussions: DiscussionsResource::new(Arc::clone(&http)),
+            dockerfile_templates: DockerfileTemplatesResource::new(Arc::clone(&http)),
+            draft_notes: DraftNotesResource::new(Arc::clone(&http)),
+            emoji: EmojiResource::new(Arc::clone(&http)),
             environments: EnvironmentsResource::new(Arc::clone(&http)),
+            epics: EpicsResource::new(Arc::clone(&http)),
+            error_tracking: ErrorTrackingResource::new(Arc::clone(&http)),
             events: EventsResource::new(Arc::clone(&http)),
+            external_status_checks: ExternalStatusChecksResource::new(Arc::clone(&http)),
+            feature_flags: FeatureFlagsResource::new(Arc::clone(&http)),
+            freeze_periods: FreezePeriodsResource::new(Arc::clone(&http)),
+            gitignore_templates: GitignoreTemplatesResource::new(Arc::clone(&http)),
+            group_iterations: GroupIterationsResource::new(Arc::clone(&http)),
+            group_push_rules: GroupPushRulesResource::new(Arc::clone(&http)),
+            group_variables: GroupVariablesResource::new(Arc::clone(&http)),
+            group_webhooks: GroupWebhooksResource::new(Arc::clone(&http)),
+            group_wikis: GroupWikisResource::new(Arc::clone(&http)),
             groups: GroupsResource::new(Arc::clone(&http)),
+            import_export: ImportExportResource::new(Arc::clone(&http)),
+            integrations: IntegrationsResource::new(Arc::clone(&http)),
+            invitations: InvitationsResource::new(Arc::clone(&http)),
+            issue_links: IssueLinksResource::new(Arc::clone(&http)),
             issues: IssuesResource::new(Arc::clone(&http)),
+            issues_statistics: IssuesStatisticsResource::new(Arc::clone(&http)),
+            job_artifacts: JobArtifactsResource::new(Arc::clone(&http)),
             jobs: JobsResource::new(Arc::clone(&http)),
+            keys: KeysResource::new(Arc::clone(&http)),
             labels: LabelsResource::new(Arc::clone(&http)),
+            license: LicenseResource::new(Arc::clone(&http)),
+            license_templates: LicenseTemplatesResource::new(Arc::clone(&http)),
+            markdown: MarkdownResource::new(Arc::clone(&http)),
             members: MembersResource::new(Arc::clone(&http)),
             merge_requests: MergeRequestsResource::new(Arc::clone(&http)),
+            merge_trains: MergeTrainsResource::new(Arc::clone(&http)),
             milestones: MilestonesResource::new(Arc::clone(&http)),
+            namespaces: NamespacesResource::new(Arc::clone(&http)),
             notes: NotesResource::new(Arc::clone(&http)),
+            notification_settings: NotificationSettingsResource::new(Arc::clone(&http)),
+            package_composer: PackageComposerResource::new(Arc::clone(&http)),
+            package_conan: PackageConanResource::new(Arc::clone(&http)),
+            package_debian: PackageDebianResource::new(Arc::clone(&http)),
+            package_go_proxy: PackageGoProxyResource::new(Arc::clone(&http)),
+            package_helm: PackageHelmResource::new(Arc::clone(&http)),
+            package_maven: PackageMavenResource::new(Arc::clone(&http)),
+            package_npm: PackageNpmResource::new(Arc::clone(&http)),
+            package_nuget: PackageNugetResource::new(Arc::clone(&http)),
+            package_pypi: PackagePypiResource::new(Arc::clone(&http)),
+            package_rubygems: PackageRubygemsResource::new(Arc::clone(&http)),
+            package_terraform_modules: PackageTerraformModulesResource::new(Arc::clone(&http)),
+            packages: PackagesResource::new(Arc::clone(&http)),
+            pages: PagesResource::new(Arc::clone(&http)),
+            personal_access_tokens: PersonalAccessTokensResource::new(Arc::clone(&http)),
             pipeline_schedules: PipelineSchedulesResource::new(Arc::clone(&http)),
+            pipeline_triggers: PipelineTriggersResource::new(Arc::clone(&http)),
             pipelines: PipelinesResource::new(Arc::clone(&http)),
+            project_hooks: ProjectHooksResource::new(Arc::clone(&http)),
+            project_templates: ProjectTemplatesResource::new(Arc::clone(&http)),
             projects: ProjectsResource::new(Arc::clone(&http)),
+            protected_branches: ProtectedBranchesResource::new(Arc::clone(&http)),
+            protected_environments: ProtectedEnvironmentsResource::new(Arc::clone(&http)),
+            protected_tags: ProtectedTagsResource::new(Arc::clone(&http)),
             releases: ReleasesResource::new(Arc::clone(&http)),
+            remote_mirrors: RemoteMirrorsResource::new(Arc::clone(&http)),
             repository_files: RepositoryFilesResource::new(Arc::clone(&http)),
+            repository_tree: RepositoryTreeResource::new(Arc::clone(&http)),
+            resource_events: ResourceEventsResource::new(Arc::clone(&http)),
             runners: RunnersResource::new(Arc::clone(&http)),
             search: SearchResource::new(Arc::clone(&http)),
+            settings: SettingsResource::new(Arc::clone(&http)),
+            snippets: SnippetsResource::new(Arc::clone(&http)),
+            system_hooks: SystemHooksResource::new(Arc::clone(&http)),
             tags: TagsResource::new(Arc::clone(&http)),
             todos: TodosResource::new(Arc::clone(&http)),
+            topics: TopicsResource::new(Arc::clone(&http)),
             users: UsersResource::new(Arc::clone(&http)),
+            variables: VariablesResource::new(Arc::clone(&http)),
+            vulnerabilities: VulnerabilitiesResource::new(Arc::clone(&http)),
             wikis: WikisResource::new(Arc::clone(&http)),
         }
     }

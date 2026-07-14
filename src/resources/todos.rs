@@ -45,7 +45,7 @@ impl TodosResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn mark_done(&self, todo_id: u64) -> Result<Todo, GitLabError> {
         let path = format!("todos/{}/mark_as_done", todo_id);
-        self.http.post(&path, &serde_json::Value::Null, "todos.mark_done").await
+        self.http.post(&path, &serde_json::json!({}), "todos.mark_done").await
     }
 
     /// Marca todas as tarefas como concluídas.
@@ -61,7 +61,7 @@ impl TodosResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn mark_all_done(&self) -> Result<Vec<Todo>, GitLabError> {
         self.http
-            .post("todos/mark_all_as_done", &serde_json::Value::Null, "todos.mark_all_done")
+            .post("todos/mark_all_as_done", &serde_json::json!({}), "todos.mark_all_done")
             .await
     }
 }

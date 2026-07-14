@@ -6,6 +6,7 @@ pub type GitLabId = u64;
 /// Resposta da API GitLab representando informações de um autor
 /// (usuário que criou ou modificou um recurso).
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct AuthorInfo {
     /// ID único do autor.
     pub id: GitLabId,
@@ -24,8 +25,10 @@ pub struct AuthorInfo {
 /// Resposta da API GitLab representando links relacionados a um recurso
 /// (ex.: links para notas, emojis, projeto).
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct Links {
     /// Link para o próprio recurso.
+    #[serde(rename = "self")]
     pub self_: Option<String>,
     /// Link para as notas do recurso.
     pub notes: Option<String>,
@@ -38,6 +41,7 @@ pub struct Links {
 /// Resposta da API GitLab representando estatísticas de tempo
 /// (estimativa e tempo gasto) de um recurso.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct TimeStats {
     /// Estimativa de tempo em segundos.
     pub time_estimate: Option<i64>,
@@ -50,8 +54,9 @@ pub struct TimeStats {
 }
 
 /// Resposta da API GitLab representando o status de conclusão de tarefas
-/// em um recurso (ex.: lista de verificação em uma descrição).
+/// em um recurso (ex.: lista de verificação em uma lista).
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct TaskCompletionStatus {
     /// Número total de tarefas.
     pub count: Option<u32>,
@@ -92,6 +97,7 @@ pub struct WikiAttachmentResult {
 /// Parâmetros de paginação para listagem de recursos na API GitLab.
 /// Use `..Default::default()` para valores padrão.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct PaginationParams {
     /// Número da página para recuperação.
     pub page: Option<u32>,

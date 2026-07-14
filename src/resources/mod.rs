@@ -1,99 +1,192 @@
 //! Módulo de recursos da API do GitLab.
 //!
 //! Este módulo contém todos os recursos (endpoints) da API do GitLab,
-//! organizados em arquivos separados por domínio. Cada recurso expõe
-//! métodos para listar, obter, criar, atualizar e deletar entidades
-//! no GitLab.
-//!
-//! Para usar um recurso, acesse-o através do `GitLabClient`:
-//!
-//! ```rust,no_run
-//! # use gitlab_wrapper::{GitLabConfig, GitLabClient};
-//! # let config = GitLabConfig {
-//! #     base_url: "https://gitlab.example.com".into(),
-//! #     token: Some("glpat-xxx".into()),
-//! #     ..Default::default()
-//! # };
-//! # tokio::runtime::Runtime::new().unwrap().block_on(async {
-//! let client = GitLabClient::new(config)?;
-//! let _projects = client.projects.list(None).await?;
-//! # Ok::<(), gitlab_wrapper::GitLabError>(())
-//! # });
-//! ```
+//! organizados em arquivos separados por domínio.
 
+mod access_requests;
+mod access_tokens;
+mod audit_events;
+mod badges;
+mod boards;
 mod branches;
+mod broadcast_messages;
+mod ci_lint;
+mod ci_yml_templates;
 mod commits;
+mod container_registry;
+mod custom_attributes;
 mod deploy_keys;
+mod deploy_tokens;
+mod deployments;
 mod discussions;
+mod dockerfile_templates;
+mod draft_notes;
+mod emoji;
 mod environments;
+mod epics;
+mod error_tracking;
 mod events;
+mod external_status_checks;
+mod feature_flags;
+mod freeze_periods;
+mod gitignore_templates;
+mod group_iterations;
+mod group_push_rules;
+mod group_variables;
+mod group_webhooks;
+mod group_wikis;
 mod groups;
+mod import_export;
+mod integrations;
+mod invitations;
+mod issue_links;
 mod issues;
+mod issues_statistics;
+mod job_artifacts;
 mod jobs;
+mod keys;
 mod labels;
+mod license;
+mod license_templates;
+mod markdown;
 mod members;
 mod merge_requests;
+mod merge_trains;
 mod milestones;
+mod namespaces;
 mod notes;
+mod notification_settings;
+mod package_composer;
+mod package_conan;
+mod package_debian;
+mod package_go_proxy;
+mod package_helm;
+mod package_maven;
+mod package_npm;
+mod package_nuget;
+mod package_pypi;
+mod package_rubygems;
+mod package_terraform_modules;
+mod packages;
+mod pages;
+mod personal_access_tokens;
 mod pipeline_schedules;
+mod pipeline_triggers;
 mod pipelines;
+mod project_hooks;
+mod project_templates;
 mod projects;
+mod protected_branches;
+mod protected_environments;
+mod protected_tags;
 mod releases;
+mod remote_mirrors;
 mod repository_files;
+mod repository_tree;
+mod resource_events;
 mod runners;
 mod search;
+mod settings;
+mod snippets;
+mod system_hooks;
 mod tags;
 mod todos;
+mod topics;
 mod users;
+mod variables;
+mod vulnerabilities;
 mod wikis;
 
-/// Recurso de API para operações com branches no GitLab.
+pub use access_requests::AccessRequestsResource;
+pub use access_tokens::AccessTokensResource;
+pub use audit_events::AuditEventsResource;
+pub use badges::BadgesResource;
+pub use boards::BoardsResource;
 pub use branches::BranchesResource;
-/// Recurso de API para operações com commits no GitLab.
+pub use broadcast_messages::BroadcastMessagesResource;
+pub use ci_lint::CiLintResource;
+pub use ci_yml_templates::CiYmlTemplatesResource;
 pub use commits::CommitsResource;
-/// Recurso de API para operações com chaves de deploy no GitLab.
+pub use container_registry::ContainerRegistryResource;
+pub use custom_attributes::CustomAttributesResource;
 pub use deploy_keys::DeployKeysResource;
-/// Recurso de API para operações com discussões no GitLab.
+pub use deploy_tokens::DeployTokensResource;
+pub use deployments::DeploymentsResource;
 pub use discussions::DiscussionsResource;
-/// Recurso de API para operações com ambientes no GitLab.
+pub use dockerfile_templates::DockerfileTemplatesResource;
+pub use draft_notes::DraftNotesResource;
+pub use emoji::EmojiResource;
 pub use environments::EnvironmentsResource;
-/// Recurso de API para operações com eventos no GitLab.
+pub use epics::EpicsResource;
+pub use error_tracking::ErrorTrackingResource;
 pub use events::EventsResource;
-/// Recurso de API para operações com grupos no GitLab.
+pub use external_status_checks::ExternalStatusChecksResource;
+pub use feature_flags::FeatureFlagsResource;
+pub use freeze_periods::FreezePeriodsResource;
+pub use gitignore_templates::GitignoreTemplatesResource;
+pub use group_iterations::GroupIterationsResource;
+pub use group_push_rules::GroupPushRulesResource;
+pub use group_variables::GroupVariablesResource;
+pub use group_webhooks::GroupWebhooksResource;
+pub use group_wikis::GroupWikisResource;
 pub use groups::GroupsResource;
-/// Recurso de API para operações com issues no GitLab.
+pub use import_export::ImportExportResource;
+pub use integrations::IntegrationsResource;
+pub use invitations::InvitationsResource;
+pub use issue_links::IssueLinksResource;
 pub use issues::IssuesResource;
-/// Recurso de API para operações com jobs no GitLab.
+pub use issues_statistics::IssuesStatisticsResource;
+pub use job_artifacts::JobArtifactsResource;
 pub use jobs::JobsResource;
-/// Recurso de API para operações com labels no GitLab.
+pub use keys::KeysResource;
 pub use labels::LabelsResource;
-/// Recurso de API para operações com membros no GitLab.
+pub use license::LicenseResource;
+pub use license_templates::LicenseTemplatesResource;
+pub use markdown::MarkdownResource;
 pub use members::MembersResource;
-/// Recurso de API para operações com merge requests no GitLab.
 pub use merge_requests::MergeRequestsResource;
-/// Recurso de API para operações com milestones no GitLab.
+pub use merge_trains::MergeTrainsResource;
 pub use milestones::MilestonesResource;
-/// Recurso de API para operações com notas no GitLab.
+pub use namespaces::NamespacesResource;
 pub use notes::NotesResource;
-/// Recurso de API para operações com agendamentos de pipeline no GitLab.
+pub use notification_settings::NotificationSettingsResource;
+pub use package_composer::PackageComposerResource;
+pub use package_conan::PackageConanResource;
+pub use package_debian::PackageDebianResource;
+pub use package_go_proxy::PackageGoProxyResource;
+pub use package_helm::PackageHelmResource;
+pub use package_maven::PackageMavenResource;
+pub use package_npm::PackageNpmResource;
+pub use package_nuget::PackageNugetResource;
+pub use package_pypi::PackagePypiResource;
+pub use package_rubygems::PackageRubygemsResource;
+pub use package_terraform_modules::PackageTerraformModulesResource;
+pub use packages::PackagesResource;
+pub use pages::PagesResource;
+pub use personal_access_tokens::PersonalAccessTokensResource;
 pub use pipeline_schedules::PipelineSchedulesResource;
-/// Recurso de API para operações com pipelines no GitLab.
+pub use pipeline_triggers::PipelineTriggersResource;
 pub use pipelines::PipelinesResource;
-/// Recurso de API para operações com projetos no GitLab.
+pub use project_hooks::ProjectHooksResource;
+pub use project_templates::ProjectTemplatesResource;
 pub use projects::ProjectsResource;
-/// Recurso de API para operações com releases no GitLab.
+pub use protected_branches::ProtectedBranchesResource;
+pub use protected_environments::ProtectedEnvironmentsResource;
+pub use protected_tags::ProtectedTagsResource;
 pub use releases::ReleasesResource;
-/// Recurso de API para operações com arquivos de repositório no GitLab.
+pub use remote_mirrors::RemoteMirrorsResource;
 pub use repository_files::RepositoryFilesResource;
-/// Recurso de API para operações com runners no GitLab.
+pub use repository_tree::RepositoryTreeResource;
+pub use resource_events::ResourceEventsResource;
 pub use runners::RunnersResource;
-/// Recurso de API para operações com busca no GitLab.
 pub use search::SearchResource;
-/// Recurso de API para operações com tags no GitLab.
+pub use settings::SettingsResource;
+pub use snippets::SnippetsResource;
+pub use system_hooks::SystemHooksResource;
 pub use tags::TagsResource;
-/// Recurso de API para operações com todos no GitLab.
 pub use todos::TodosResource;
-/// Recurso de API para operações com usuários no GitLab.
+pub use topics::TopicsResource;
 pub use users::UsersResource;
-/// Recurso de API para operações com wikis no GitLab.
+pub use variables::VariablesResource;
+pub use vulnerabilities::VulnerabilitiesResource;
 pub use wikis::WikisResource;

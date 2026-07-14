@@ -257,7 +257,7 @@ let gl_normal = GitLabClient::new(GitLabConfig {
 
 ## Próximos Passos
 
-- [Guia de Uso](usage-guide.md) — exemplos práticos para todos os 25 resources
+- [Guia de Uso](usage-guide.md) — exemplos práticos para todos os 93 resources
 - [Guia de Integração](integration-guide.md) — padrões, DI, retry, cache, OAuth
 - [Particularidades da API](particularities.md) — `id` vs `iid`, encoding, sudo, rate limiting
 - [Referência da API](api-reference.md) — documentação completa de structs e métodos

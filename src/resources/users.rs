@@ -193,7 +193,7 @@ impl UsersResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn deactivate(&self, user_id: u64) -> Result<(), GitLabError> {
         let path = format!("users/{}/deactivate", user_id);
-        self.http.post(&path, &serde_json::Value::Null, "users.deactivate").await
+        self.http.post(&path, &serde_json::json!({}), "users.deactivate").await
     }
 
     /// Reativa um usuário desativado.
@@ -209,7 +209,7 @@ impl UsersResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn activate(&self, user_id: u64) -> Result<(), GitLabError> {
         let path = format!("users/{}/activate", user_id);
-        self.http.post(&path, &serde_json::Value::Null, "users.activate").await
+        self.http.post(&path, &serde_json::json!({}), "users.activate").await
     }
 
     /// Bane um usuário.
@@ -225,7 +225,7 @@ impl UsersResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn ban(&self, user_id: u64) -> Result<(), GitLabError> {
         let path = format!("users/{}/ban", user_id);
-        self.http.post(&path, &serde_json::Value::Null, "users.ban").await
+        self.http.post(&path, &serde_json::json!({}), "users.ban").await
     }
 
     /// Remove o banimento de um usuário.
@@ -241,7 +241,7 @@ impl UsersResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn unban(&self, user_id: u64) -> Result<(), GitLabError> {
         let path = format!("users/{}/unban", user_id);
-        self.http.post(&path, &serde_json::Value::Null, "users.unban").await
+        self.http.post(&path, &serde_json::json!({}), "users.unban").await
     }
 
     /// Obtém as preferências do usuário autenticado.

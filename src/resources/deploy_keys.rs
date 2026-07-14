@@ -123,6 +123,6 @@ impl DeployKeysResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn enable(&self, project_id: u64, key_id: u64) -> Result<DeployKey, GitLabError> {
         let path = format!("projects/{}/deploy_keys/{}/enable", project_id, key_id);
-        self.http.post(&path, &serde_json::Value::Null, "deploy_keys.enable").await
+        self.http.post(&path, &serde_json::json!({}), "deploy_keys.enable").await
     }
 }

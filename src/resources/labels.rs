@@ -134,7 +134,7 @@ impl LabelsResource {
         name: &str,
     ) -> Result<GroupLabel, GitLabError> {
         let path = format!("projects/{}/labels/{}/promote", project_id, encode_query_param(name));
-        self.http.put(&path, &serde_json::Value::Null, "labels.promote_project").await
+        self.http.put(&path, &serde_json::json!({}), "labels.promote_project").await
     }
 
     /// Lista labels de um grupo.

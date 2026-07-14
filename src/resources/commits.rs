@@ -1,6 +1,7 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
 use crate::types::*;
+use crate::utils::encoding::encode_query_param;
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -51,11 +52,12 @@ impl CommitsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, sha: &str) -> Result<Commit, GitLabError> {
-        let path = format!("projects/{}/repository/commits/{}", project_id, sha);
+        let path =
+            format!("projects/{}/repository/commits/{}", project_id, encode_query_param(sha));
         self.http.get(&path, &[], "commits.get").await
     }
 
-    /// Cria um novo commit em um projeto.
+    /// Cria um novo commit com múltiplas ações (create, update, delete, move, chmod).
     ///
     /// ## Params
     /// - `project_id`: ID do projeto no GitLab.
@@ -95,7 +97,11 @@ impl CommitsResource {
         sha: &str,
         target_branch: &str,
     ) -> Result<Commit, GitLabError> {
-        let path = format!("projects/{}/repository/commits/{}/cherry_pick", project_id, sha);
+        let path = format!(
+            "projects/{}/repository/commits/{}/cherry_pick",
+            project_id,
+            encode_query_param(sha)
+        );
         let body = serde_json::json!({ "branch": target_branch });
         self.http.post(&path, &body, "commits.cherry_pick").await
     }
@@ -119,7 +125,11 @@ impl CommitsResource {
         sha: &str,
         target_branch: &str,
     ) -> Result<Commit, GitLabError> {
-        let path = format!("projects/{}/repository/commits/{}/revert", project_id, sha);
+        let path = format!(
+            "projects/{}/repository/commits/{}/revert",
+            project_id,
+            encode_query_param(sha)
+        );
         let body = serde_json::json!({ "branch": target_branch });
         self.http.post(&path, &body, "commits.revert").await
     }
@@ -137,7 +147,8 @@ impl CommitsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn diff(&self, project_id: u64, sha: &str) -> Result<Vec<CommitDiff>, GitLabError> {
-        let path = format!("projects/{}/repository/commits/{}/diff", project_id, sha);
+        let path =
+            format!("projects/{}/repository/commits/{}/diff", project_id, encode_query_param(sha));
         self.http.get(&path, &[], "commits.diff").await
     }
 
@@ -154,7 +165,8 @@ impl CommitsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn refs(&self, project_id: u64, sha: &str) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/repository/commits/{}/refs", project_id, sha);
+        let path =
+            format!("projects/{}/repository/commits/{}/refs", project_id, encode_query_param(sha));
         self.http.get(&path, &[], "commits.refs").await
     }
 
@@ -171,7 +183,11 @@ impl CommitsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn comments(&self, project_id: u64, sha: &str) -> Result<Vec<Note>, GitLabError> {
-        let path = format!("projects/{}/repository/commits/{}/comments", project_id, sha);
+        let path = format!(
+            "projects/{}/repository/commits/{}/comments",
+            project_id,
+            encode_query_param(sha)
+        );
         self.http.get(&path, &[], "commits.comments").await
     }
 
@@ -194,8 +210,87 @@ impl CommitsResource {
         sha: &str,
         note: &str,
     ) -> Result<Note, GitLabError> {
-        let path = format!("projects/{}/repository/commits/{}/comments", project_id, sha);
+        let path = format!(
+            "projects/{}/repository/commits/{}/comments",
+            project_id,
+            encode_query_param(sha)
+        );
         let body = serde_json::json!({ "note": note });
         self.http.post(&path, &body, "commits.add_comment").await
+    }
+
+    /// Lista merge requests associados a um commit.
+    ///
+    /// ## Params
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `sha`: SHA do commit.
+    ///
+    /// ## Returns
+    /// `Result<Vec<MergeRequest>, GitLabError>` — lista de merge requests do commit.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
+    pub async fn merge_requests(
+        &self,
+        project_id: u64,
+        sha: &str,
+    ) -> Result<Vec<MergeRequest>, GitLabError> {
+        let path = format!(
+            "projects/{}/repository/commits/{}/merge_requests",
+            project_id,
+            encode_query_param(sha)
+        );
+        self.http.get(&path, &[], "commits.merge_requests").await
+    }
+
+    /// Lista statuses (CI) de um commit.
+    ///
+    /// ## Params
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `sha`: SHA do commit.
+    ///
+    /// ## Returns
+    /// `Result<Vec<serde_json::Value>, GitLabError>` — lista de statuses do commit.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
+    pub async fn statuses(
+        &self,
+        project_id: u64,
+        sha: &str,
+    ) -> Result<Vec<serde_json::Value>, GitLabError> {
+        let path = format!(
+            "projects/{}/repository/commits/{}/statuses",
+            project_id,
+            encode_query_param(sha)
+        );
+        self.http.get(&path, &[], "commits.statuses").await
+    }
+
+    /// Obtém a assinatura GPG de um commit.
+    ///
+    /// ## Params
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `sha`: SHA do commit.
+    ///
+    /// ## Returns
+    /// `Result<serde_json::Value, GitLabError>` — dados da assinatura do commit.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
+    pub async fn signature(
+        &self,
+        project_id: u64,
+        sha: &str,
+    ) -> Result<serde_json::Value, GitLabError> {
+        let path = format!(
+            "projects/{}/repository/commits/{}/signature",
+            project_id,
+            encode_query_param(sha)
+        );
+        self.http.get(&path, &[], "commits.signature").await
     }
 }

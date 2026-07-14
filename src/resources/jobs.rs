@@ -110,7 +110,7 @@ impl JobsResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn cancel(&self, project_id: u64, job_id: u64) -> Result<Job, GitLabError> {
         let path = format!("projects/{}/jobs/{}/cancel", project_id, job_id);
-        self.http.post(&path, &serde_json::Value::Null, "jobs.cancel").await
+        self.http.post(&path, &serde_json::json!({}), "jobs.cancel").await
     }
 
     /// Tenta novamente um job com falha.
@@ -127,7 +127,7 @@ impl JobsResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn retry(&self, project_id: u64, job_id: u64) -> Result<Job, GitLabError> {
         let path = format!("projects/{}/jobs/{}/retry", project_id, job_id);
-        self.http.post(&path, &serde_json::Value::Null, "jobs.retry").await
+        self.http.post(&path, &serde_json::json!({}), "jobs.retry").await
     }
 
     /// Executa um job manual (ação "play").
@@ -144,7 +144,7 @@ impl JobsResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn play(&self, project_id: u64, job_id: u64) -> Result<Job, GitLabError> {
         let path = format!("projects/{}/jobs/{}/play", project_id, job_id);
-        self.http.post(&path, &serde_json::Value::Null, "jobs.play").await
+        self.http.post(&path, &serde_json::json!({}), "jobs.play").await
     }
 
     /// Apaga o log (trace) de um job.
@@ -161,7 +161,7 @@ impl JobsResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn erase(&self, project_id: u64, job_id: u64) -> Result<Job, GitLabError> {
         let path = format!("projects/{}/jobs/{}/erase", project_id, job_id);
-        self.http.post(&path, &serde_json::Value::Null, "jobs.erase").await
+        self.http.post(&path, &serde_json::json!({}), "jobs.erase").await
     }
 
     /// Obtém os artefatos de um job.

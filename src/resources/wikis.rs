@@ -133,8 +133,7 @@ impl WikisResource {
         data: Vec<u8>,
     ) -> Result<WikiAttachmentResult, GitLabError> {
         let path = format!("projects/{}/wikis/attachments", project_id);
-        let part = reqwest::multipart::Part::bytes(data)
-            .file_name(file_name.to_string());
+        let part = reqwest::multipart::Part::bytes(data).file_name(file_name.to_string());
         let form = reqwest::multipart::Form::new().part("file", part);
         self.http.post_multipart(&path, form, "wikis.upload_attachment").await
     }

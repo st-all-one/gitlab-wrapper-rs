@@ -34,7 +34,8 @@ pub struct TodoFilter {
     /// Filtro por estado (done, pending).
     pub state: Option<String>,
     /// Filtro por tipo de alvo (Issue, MergeRequest, etc.).
-    pub r#type: Option<String>,
+    #[serde(rename = "type")]
+    pub type_: Option<String>,
     /// Filtro por ação (assigned, mentioned, etc.).
     pub action: Option<String>,
     /// Filtro por ID do autor.

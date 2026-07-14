@@ -8,7 +8,7 @@ construído em Rust assíncrono (tokio) com foco em segurança, rastreabilidade 
 | Seção | Descrição |
 |-------|-----------|
 | [**Getting Started**](./getting-started.md) | Instalação, configuração, primeira chamada |
-| [**Guia de Uso**](./usage-guide.md) | Exemplos completos para todos os 25 resources |
+| [**Guia de Uso**](./usage-guide.md) | Exemplos completos para todos os 93 resources |
 | [**Guia de Integração**](./integration-guide.md) | Padrões, DI, retry, cache, OAuth |
 | [**Particularidades da API GitLab**](./particularities.md) | `id` vs `iid`, encoding, sudo, rate limiting |
 | [**Referência da API**](./api-reference.md) | Lista completa de tipos, structs e métodos |

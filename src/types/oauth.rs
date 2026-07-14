@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando um token de acesso OAuth 2.0.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct OAuthTokenResponse {
     /// Token de acesso.
     pub access_token: String,
@@ -19,6 +20,7 @@ pub struct OAuthTokenResponse {
 
 /// Resposta da API GitLab representando uma autorização de dispositivo (device flow).
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct DeviceAuthResponse {
     /// Código de dispositivo para verificação.
     pub device_code: String,
@@ -36,6 +38,7 @@ pub struct DeviceAuthResponse {
 
 /// Resposta da API GitLab representando um erro de OAuth.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct OAuthErrorResponse {
     /// Código do erro.
     pub error: String,

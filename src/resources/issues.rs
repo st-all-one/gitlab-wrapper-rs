@@ -148,9 +148,9 @@ impl IssuesResource {
         &self,
         project_id: u64,
         issue_iid: u32,
-    ) -> Result<IssueMinimal, GitLabError> {
+    ) -> Result<serde_json::Value, GitLabError> {
         let path = format!("projects/{}/issues/{}/subscribe", project_id, issue_iid);
-        self.http.post(&path, &serde_json::Value::Null, "issues.subscribe").await
+        self.http.post(&path, &serde_json::json!({}), "issues.subscribe").await
     }
 
     /// Cancela a inscrição em uma issue.
@@ -158,12 +158,24 @@ impl IssuesResource {
         &self,
         project_id: u64,
         issue_iid: u32,
-    ) -> Result<IssueMinimal, GitLabError> {
+    ) -> Result<serde_json::Value, GitLabError> {
         let path = format!("projects/{}/issues/{}/unsubscribe", project_id, issue_iid);
-        self.http.post(&path, &serde_json::Value::Null, "issues.unsubscribe").await
+        self.http.post(&path, &serde_json::json!({}), "issues.unsubscribe").await
     }
 
     /// Define uma estimativa de tempo para uma issue.
+    ///
+    /// ## Params
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `issue_iid`: IID da issue.
+    /// - `duration`: Duração no formato "3h30m".
+    ///
+    /// ## Returns
+    /// `Result<IssueMinimal, GitLabError>` — dados atualizados de tempo.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn set_time_estimate(
         &self,
         project_id: u64,
@@ -176,6 +188,18 @@ impl IssuesResource {
     }
 
     /// Adiciona tempo gasto a uma issue.
+    ///
+    /// ## Params
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `issue_iid`: IID da issue.
+    /// - `duration`: Duração no formato "3h30m".
+    ///
+    /// ## Returns
+    /// `Result<IssueMinimal, GitLabError>` — dados atualizados de tempo.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn add_spent_time(
         &self,
         project_id: u64,
@@ -188,23 +212,45 @@ impl IssuesResource {
     }
 
     /// Redefine a estimativa de tempo de uma issue.
+    ///
+    /// ## Params
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `issue_iid`: IID da issue.
+    ///
+    /// ## Returns
+    /// `Result<IssueMinimal, GitLabError>` — dados após redefinição.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn reset_time_estimate(
         &self,
         project_id: u64,
         issue_iid: u32,
     ) -> Result<IssueMinimal, GitLabError> {
         let path = format!("projects/{}/issues/{}/reset_time_estimate", project_id, issue_iid);
-        self.http.post(&path, &serde_json::Value::Null, "issues.reset_time_estimate").await
+        self.http.post(&path, &serde_json::json!({}), "issues.reset_time_estimate").await
     }
 
     /// Redefine o tempo gasto de uma issue.
+    ///
+    /// ## Params
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `issue_iid`: IID da issue.
+    ///
+    /// ## Returns
+    /// `Result<IssueMinimal, GitLabError>` — dados após redefinição.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn reset_spent_time(
         &self,
         project_id: u64,
         issue_iid: u32,
     ) -> Result<IssueMinimal, GitLabError> {
         let path = format!("projects/{}/issues/{}/reset_spent_time", project_id, issue_iid);
-        self.http.post(&path, &serde_json::Value::Null, "issues.reset_spent_time").await
+        self.http.post(&path, &serde_json::json!({}), "issues.reset_spent_time").await
     }
 
     /// Move uma issue para outro projeto.
@@ -251,5 +297,121 @@ impl IssuesResource {
         let path = format!("groups/{}/issues", group_id);
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "issues.get_by_group").await
+    }
+
+    /// Reordena uma issue.
+    ///
+    /// ## Params
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `issue_iid`: IID da issue.
+    /// - `move_after_id`: ID da issue após a qual esta deve ser posicionada.
+    /// - `move_before_id`: ID da issue antes da qual esta deve ser posicionada.
+    ///
+    /// ## Returns
+    /// `Result<Issue, GitLabError>` — dados da issue reordenada.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
+    pub async fn reorder(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+        move_after_id: Option<u64>,
+        move_before_id: Option<u64>,
+    ) -> Result<Issue, GitLabError> {
+        let path = format!("projects/{}/issues/{}/reorder", project_id, issue_iid);
+        let mut body = serde_json::json!({});
+        if let Some(id) = move_after_id {
+            body["move_after_id"] = serde_json::json!(id);
+        }
+        if let Some(id) = move_before_id {
+            body["move_before_id"] = serde_json::json!(id);
+        }
+        self.http.put(&path, &body, "issues.reorder").await
+    }
+
+    /// Obtém quem fechou uma issue.
+    ///
+    /// ## Params
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `issue_iid`: IID da issue.
+    ///
+    /// ## Returns
+    /// `Result<Vec<AuthorInfo>, GitLabError>` — lista de usuários que fecharam a issue.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
+    pub async fn closed_by(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+    ) -> Result<Vec<AuthorInfo>, GitLabError> {
+        let path = format!("projects/{}/issues/{}/closed_by", project_id, issue_iid);
+        self.http.get(&path, &[], "issues.closed_by").await
+    }
+
+    /// Lista merge requests relacionados a uma issue.
+    ///
+    /// ## Params
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `issue_iid`: IID da issue.
+    ///
+    /// ## Returns
+    /// `Result<Vec<MergeRequest>, GitLabError>` — lista de MRs relacionados.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
+    pub async fn related_merge_requests(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+    ) -> Result<Vec<MergeRequest>, GitLabError> {
+        let path = format!("projects/{}/issues/{}/related_merge_requests", project_id, issue_iid);
+        self.http.get(&path, &[], "issues.related_merge_requests").await
+    }
+
+    /// Lista participantes de uma issue.
+    ///
+    /// ## Params
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `issue_iid`: IID da issue.
+    ///
+    /// ## Returns
+    /// `Result<Vec<AuthorInfo>, GitLabError>` — lista de participantes.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
+    pub async fn participants(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+    ) -> Result<Vec<AuthorInfo>, GitLabError> {
+        let path = format!("projects/{}/issues/{}/participants", project_id, issue_iid);
+        self.http.get(&path, &[], "issues.participants").await
+    }
+
+    /// Obtém o status de inscrição em uma issue.
+    ///
+    /// ## Params
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `issue_iid`: IID da issue.
+    ///
+    /// ## Returns
+    /// `Result<serde_json::Value, GitLabError>` — status de inscrição.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
+    pub async fn subscription(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+    ) -> Result<serde_json::Value, GitLabError> {
+        let path = format!("projects/{}/issues/{}/subscription", project_id, issue_iid);
+        self.http.get(&path, &[], "issues.subscription").await
     }
 }

@@ -1,6 +1,7 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
 use crate::types::*;
+use crate::utils::encoding::encode_query_param;
 use std::sync::Arc;
 
 /// Recurso de API para operações com agendamentos de pipeline no GitLab.
@@ -132,7 +133,7 @@ impl PipelineSchedulesResource {
     ) -> Result<PipelineSchedule, GitLabError> {
         let path =
             format!("projects/{}/pipeline_schedules/{}/take_ownership", project_id, schedule_id);
-        self.http.post(&path, &serde_json::Value::Null, "pipeline_schedules.take_ownership").await
+        self.http.post(&path, &serde_json::json!({}), "pipeline_schedules.take_ownership").await
     }
 
     /// Cria uma variável para um agendamento de pipeline.
@@ -166,7 +167,7 @@ impl PipelineSchedulesResource {
     /// ## Params
     /// - `project_id`: ID do projeto no GitLab.
     /// - `schedule_id`: ID do agendamento no GitLab.
-    /// - `variable_id`: ID da variável no GitLab.
+    /// - `key`: Chave da variável (string, não o ID numérico).
     /// - `value`: Novo valor da variável.
     ///
     /// ## Returns
@@ -179,12 +180,14 @@ impl PipelineSchedulesResource {
         &self,
         project_id: u64,
         schedule_id: u64,
-        variable_id: u64,
+        key: &str,
         value: &str,
     ) -> Result<PipelineScheduleVariable, GitLabError> {
         let path = format!(
             "projects/{}/pipeline_schedules/{}/variables/{}",
-            project_id, schedule_id, variable_id
+            project_id,
+            schedule_id,
+            encode_query_param(key)
         );
         let body = serde_json::json!({ "value": value });
         self.http.put(&path, &body, "pipeline_schedules.update_variable").await
@@ -195,7 +198,7 @@ impl PipelineSchedulesResource {
     /// ## Params
     /// - `project_id`: ID do projeto no GitLab.
     /// - `schedule_id`: ID do agendamento no GitLab.
-    /// - `variable_id`: ID da variável no GitLab.
+    /// - `key`: Chave da variável (string, não o ID numérico).
     ///
     /// ## Returns
     /// `Result<(), GitLabError>` — vazio em caso de sucesso.
@@ -207,11 +210,13 @@ impl PipelineSchedulesResource {
         &self,
         project_id: u64,
         schedule_id: u64,
-        variable_id: u64,
+        key: &str,
     ) -> Result<(), GitLabError> {
         let path = format!(
             "projects/{}/pipeline_schedules/{}/variables/{}",
-            project_id, schedule_id, variable_id
+            project_id,
+            schedule_id,
+            encode_query_param(key)
         );
         self.http.delete(&path, &[], "pipeline_schedules.delete_variable").await
     }

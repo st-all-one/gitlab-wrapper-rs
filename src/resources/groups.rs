@@ -1,6 +1,7 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
 use crate::types::*;
+use crate::utils::encoding::encode_query_param;
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -60,7 +61,7 @@ impl GroupsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get_by_path(&self, path: &str) -> Result<Group, GitLabError> {
-        let encoded = crate::utils::encoding::encode_query_param(path);
+        let encoded = encode_query_param(path);
         let url = format!("groups/{}", encoded);
         self.http.get(&url, &[], "groups.get_by_path").await
     }
@@ -163,5 +164,53 @@ impl GroupsResource {
     pub async fn projects(&self, group_id: u64) -> Result<Vec<Project>, GitLabError> {
         let path = format!("groups/{}/projects", group_id);
         self.http.get(&path, &[], "groups.projects").await
+    }
+
+    /// Lista projetos compartilhados com um grupo.
+    ///
+    /// ## Params
+    /// - `group_id`: ID do grupo no GitLab.
+    ///
+    /// ## Returns
+    /// `Result<Vec<Project>, GitLabError>` — lista de projetos compartilhados.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
+    pub async fn shared_projects(&self, group_id: u64) -> Result<Vec<Project>, GitLabError> {
+        let path = format!("groups/{}/projects/shared", group_id);
+        self.http.get(&path, &[], "groups.shared_projects").await
+    }
+
+    /// Lista usuários SAML de um grupo.
+    ///
+    /// ## Params
+    /// - `group_id`: ID do grupo no GitLab.
+    ///
+    /// ## Returns
+    /// `Result<Vec<User>, GitLabError>` — lista de usuários SAML.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
+    pub async fn saml_users(&self, group_id: u64) -> Result<Vec<User>, GitLabError> {
+        let path = format!("groups/{}/saml_users", group_id);
+        self.http.get(&path, &[], "groups.saml_users").await
+    }
+
+    /// Lista usuários provisionados de um grupo.
+    ///
+    /// ## Params
+    /// - `group_id`: ID do grupo no GitLab.
+    ///
+    /// ## Returns
+    /// `Result<Vec<User>, GitLabError>` — lista de usuários provisionados.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
+    pub async fn provisioned_users(&self, group_id: u64) -> Result<Vec<User>, GitLabError> {
+        let path = format!("groups/{}/provisioned_users", group_id);
+        self.http.get(&path, &[], "groups.provisioned_users").await
     }
 }

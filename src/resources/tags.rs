@@ -86,4 +86,29 @@ impl TagsResource {
         let path = format!("projects/{}/repository/tags/{}", project_id, encode_query_param(tag));
         self.http.delete(&path, &[], "tags.delete").await
     }
+
+    /// Obtém a assinatura criptográfica de uma tag.
+    ///
+    /// ## Params
+    /// - `project_id`: ID do projeto no GitLab.
+    /// - `tag_name`: Nome da tag.
+    ///
+    /// ## Returns
+    /// `Result<serde_json::Value, GitLabError>` — dados da assinatura da tag.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
+    /// permissão (403), recurso não encontrado (404), ou validação (422).
+    pub async fn signature(
+        &self,
+        project_id: u64,
+        tag_name: &str,
+    ) -> Result<serde_json::Value, GitLabError> {
+        let path = format!(
+            "projects/{}/repository/tags/{}/signature",
+            project_id,
+            encode_query_param(tag_name)
+        );
+        self.http.get(&path, &[], "tags.signature").await
+    }
 }

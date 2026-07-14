@@ -106,7 +106,7 @@ impl PipelinesResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn retry(&self, project_id: u64, pipeline_id: u64) -> Result<Pipeline, GitLabError> {
         let path = format!("projects/{}/pipelines/{}/retry", project_id, pipeline_id);
-        self.http.post(&path, &serde_json::Value::Null, "pipelines.retry").await
+        self.http.post(&path, &serde_json::json!({}), "pipelines.retry").await
     }
 
     /// Cancela uma pipeline em execução.
@@ -123,7 +123,7 @@ impl PipelinesResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn cancel(&self, project_id: u64, pipeline_id: u64) -> Result<Pipeline, GitLabError> {
         let path = format!("projects/{}/pipelines/{}/cancel", project_id, pipeline_id);
-        self.http.post(&path, &serde_json::Value::Null, "pipelines.cancel").await
+        self.http.post(&path, &serde_json::json!({}), "pipelines.cancel").await
     }
 
     /// Remove uma pipeline.

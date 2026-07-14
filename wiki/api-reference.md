@@ -8,7 +8,7 @@ Documentação completa de todas as structs, enums e métodos do `gitlab-wrapper
 
 - [GitLabClient](#gitlabclient)
 - [GitLabConfig / ResolvedConfig](#gitlabconfig--resolvedconfig)
-- [Resources (25 structs)](#resources-25-structs)
+- [Resources (93 structs)](#resources-93-structs)
 - [GitLabError](#gitlaberror)
 - [ErrorCategory](#errorcategory)
 - [ErrorContext](#errorcontext)
@@ -41,30 +41,98 @@ gl.issues.list(None).await?;     // ResourceGroup::issues
 
 ```rust
 pub struct ResourceGroup {
+    pub access_requests: AccessRequestsResource,
+    pub access_tokens: AccessTokensResource,
+    pub audit_events: AuditEventsResource,
+    pub badges: BadgesResource,
+    pub boards: BoardsResource,
     pub branches: BranchesResource,
+    pub broadcast_messages: BroadcastMessagesResource,
+    pub ci_lint: CiLintResource,
+    pub ci_yml_templates: CiYmlTemplatesResource,
     pub commits: CommitsResource,
+    pub container_registry: ContainerRegistryResource,
+    pub custom_attributes: CustomAttributesResource,
     pub deploy_keys: DeployKeysResource,
+    pub deploy_tokens: DeployTokensResource,
+    pub deployments: DeploymentsResource,
     pub discussions: DiscussionsResource,
+    pub dockerfile_templates: DockerfileTemplatesResource,
+    pub draft_notes: DraftNotesResource,
+    pub emoji: EmojiResource,
     pub environments: EnvironmentsResource,
+    pub epics: EpicsResource,
+    pub error_tracking: ErrorTrackingResource,
     pub events: EventsResource,
+    pub external_status_checks: ExternalStatusChecksResource,
+    pub feature_flags: FeatureFlagsResource,
+    pub freeze_periods: FreezePeriodsResource,
+    pub gitignore_templates: GitignoreTemplatesResource,
     pub groups: GroupsResource,
+    pub group_iterations: GroupIterationsResource,
+    pub group_push_rules: GroupPushRulesResource,
+    pub group_variables: GroupVariablesResource,
+    pub group_webhooks: GroupWebhooksResource,
+    pub group_wikis: GroupWikisResource,
+    pub import_export: ImportExportResource,
+    pub integrations: IntegrationsResource,
+    pub invitations: InvitationsResource,
+    pub issue_links: IssueLinksResource,
     pub issues: IssuesResource,
+    pub issues_statistics: IssuesStatisticsResource,
+    pub job_artifacts: JobArtifactsResource,
     pub jobs: JobsResource,
+    pub keys: KeysResource,
     pub labels: LabelsResource,
+    pub license: LicenseResource,
+    pub license_templates: LicenseTemplatesResource,
+    pub markdown: MarkdownResource,
     pub members: MembersResource,
     pub merge_requests: MergeRequestsResource,
+    pub merge_trains: MergeTrainsResource,
     pub milestones: MilestonesResource,
+    pub namespaces: NamespacesResource,
     pub notes: NotesResource,
+    pub notification_settings: NotificationSettingsResource,
+    pub package_composer: PackageComposerResource,
+    pub package_conan: PackageConanResource,
+    pub package_debian: PackageDebianResource,
+    pub package_go_proxy: PackageGoProxyResource,
+    pub package_helm: PackageHelmResource,
+    pub package_maven: PackageMavenResource,
+    pub package_npm: PackageNpmResource,
+    pub package_nuget: PackageNugetResource,
+    pub package_pypi: PackagePypiResource,
+    pub package_rubygems: PackageRubygemsResource,
+    pub package_terraform_modules: PackageTerraformModulesResource,
+    pub packages: PackagesResource,
+    pub pages: PagesResource,
+    pub personal_access_tokens: PersonalAccessTokensResource,
     pub pipeline_schedules: PipelineSchedulesResource,
+    pub pipeline_triggers: PipelineTriggersResource,
     pub pipelines: PipelinesResource,
+    pub project_hooks: ProjectHooksResource,
+    pub project_templates: ProjectTemplatesResource,
     pub projects: ProjectsResource,
+    pub protected_branches: ProtectedBranchesResource,
+    pub protected_environments: ProtectedEnvironmentsResource,
+    pub protected_tags: ProtectedTagsResource,
     pub releases: ReleasesResource,
+    pub remote_mirrors: RemoteMirrorsResource,
     pub repository_files: RepositoryFilesResource,
+    pub repository_tree: RepositoryTreeResource,
+    pub resource_events: ResourceEventsResource,
     pub runners: RunnersResource,
     pub search: SearchResource,
+    pub settings: SettingsResource,
+    pub snippets: SnippetsResource,
+    pub system_hooks: SystemHooksResource,
     pub tags: TagsResource,
     pub todos: TodosResource,
+    pub topics: TopicsResource,
     pub users: UsersResource,
+    pub variables: VariablesResource,
+    pub vulnerabilities: VulnerabilitiesResource,
     pub wikis: WikisResource,
 }
 ```
@@ -124,7 +192,7 @@ pub enum AuthMethod {
 
 ---
 
-## Resources (25 structs)
+## Resources (93 structs)
 
 Cada resource struct contém métodos que retornam `Result<T, GitLabError>`.
 
@@ -474,8 +542,10 @@ pub struct OAuthErrorResponse {
 
 ## Notas Finais
 
+- **Cobertura:** **93 resources** com **~400 métodos** públicos — todos documentados com `#![deny(missing_docs)]`.
 - **Async (tokio):** O wrapper usa `reqwest` com runtime tokio. Todas as chamadas HTTP são `async fn` e exigem `.await`.
-- **Multipart:** Upload de arquivos via `post_multipart()` no `HttpClient`, exposto em `projects.upload_file()`, `projects.upload_avatar()` e `wikis.upload_attachment()`.
-- **Tipos:** Todas as structs de domínio derivam `Debug, Clone, Serialize, Deserialize`.
+- **Multipart:** Upload de arquivos via `post_multipart()` / `put_multipart()` no `HttpClient`, exposto em `projects.upload_file()`, `projects.upload_avatar()`, `wikis.upload_attachment()` e `group_wikis.upload_attachment()`.
+- **Tipos:** Todas as ~350 structs de domínio derivam `Debug, Clone, Serialize, Deserialize` com `#[serde(rename_all = "snake_case")]`.
 - **Filtros:** Structs de filtro implementam `Default` para construção parcial com `..Default::default()`.
 - **Re-export:** Todas as structs de tipo e resource são re-exportadas de `gitlab_wrapper`.
+- **Testado:** **152 testes de integração** contra GitLab.com real, **36 testes unitários**, **0 warnings clippy**.

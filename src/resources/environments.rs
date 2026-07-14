@@ -123,6 +123,6 @@ impl EnvironmentsResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn stop(&self, project_id: u64, env_id: u64) -> Result<Environment, GitLabError> {
         let path = format!("projects/{}/environments/{}/stop", project_id, env_id);
-        self.http.post(&path, &serde_json::Value::Null, "environments.stop").await
+        self.http.post(&path, &serde_json::json!({}), "environments.stop").await
     }
 }
