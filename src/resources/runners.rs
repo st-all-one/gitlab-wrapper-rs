@@ -1,7 +1,7 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use std::sync::Arc;
 use crate::types::*;
+use std::sync::Arc;
 
 /// Recurso de API para operações com runners no GitLab.
 #[derive(Debug)]
@@ -26,8 +26,8 @@ impl RunnersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list(&self) -> Result<Vec<Runner>, GitLabError> {
-        self.http.get("runners", &[], "runners.list")
+    pub async fn list(&self) -> Result<Vec<Runner>, GitLabError> {
+        self.http.get("runners", &[], "runners.list").await
     }
 
     /// Obtém um runner pelo ID.
@@ -41,9 +41,9 @@ impl RunnersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get(&self, runner_id: u64) -> Result<Runner, GitLabError> {
+    pub async fn get(&self, runner_id: u64) -> Result<Runner, GitLabError> {
         let path = format!("runners/{}", runner_id);
-        self.http.get(&path, &[], "runners.get")
+        self.http.get(&path, &[], "runners.get").await
     }
 
     /// Registra um novo runner.
@@ -57,8 +57,8 @@ impl RunnersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create(&self, payload: &CreateRunnerPayload) -> Result<Runner, GitLabError> {
-        self.http.post("runners", &payload, "runners.create")
+    pub async fn create(&self, payload: &CreateRunnerPayload) -> Result<Runner, GitLabError> {
+        self.http.post("runners", &payload, "runners.create").await
     }
 
     /// Atualiza um runner existente.
@@ -73,9 +73,13 @@ impl RunnersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update(&self, runner_id: u64, payload: &UpdateRunnerPayload) -> Result<Runner, GitLabError> {
+    pub async fn update(
+        &self,
+        runner_id: u64,
+        payload: &UpdateRunnerPayload,
+    ) -> Result<Runner, GitLabError> {
         let path = format!("runners/{}", runner_id);
-        self.http.put(&path, &payload, "runners.update")
+        self.http.put(&path, &payload, "runners.update").await
     }
 
     /// Remove um runner.
@@ -89,9 +93,9 @@ impl RunnersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete(&self, runner_id: u64) -> Result<(), GitLabError> {
+    pub async fn delete(&self, runner_id: u64) -> Result<(), GitLabError> {
         let path = format!("runners/{}", runner_id);
-        self.http.delete(&path, &[], "runners.delete")
+        self.http.delete(&path, &[], "runners.delete").await
     }
 
     /// Lista os jobs executados por um runner.
@@ -105,8 +109,8 @@ impl RunnersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_jobs(&self, runner_id: u64) -> Result<Vec<Job>, GitLabError> {
+    pub async fn list_jobs(&self, runner_id: u64) -> Result<Vec<Job>, GitLabError> {
         let path = format!("runners/{}/jobs", runner_id);
-        self.http.get(&path, &[], "runners.list_jobs")
+        self.http.get(&path, &[], "runners.list_jobs").await
     }
 }

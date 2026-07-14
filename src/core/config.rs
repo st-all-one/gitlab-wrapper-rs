@@ -6,7 +6,7 @@
 use std::fmt;
 use std::time::Duration;
 
-use super::constants::{DEFAULT_TIMEOUT, DEFAULT_MAX_RPS};
+use super::constants::{DEFAULT_MAX_RPS, DEFAULT_TIMEOUT};
 
 /// Método de autenticação usado nas requisições à API do GitLab.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

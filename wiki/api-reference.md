@@ -31,9 +31,9 @@ O `GitLabClient` implementa `Deref<Target = ResourceGroup>`, então todos os res
 são acessíveis diretamente via `.`:
 
 ```rust
-let gl = GitLabClient::new(config)?;
-gl.projects.list(None)?;   // ResourceGroup::projects
-gl.issues.list(None)?;     // ResourceGroup::issues
+let gl = GitLabClient::new(config).await?;
+gl.projects.list(None).await?;   // ResourceGroup::projects
+gl.issues.list(None).await?;     // ResourceGroup::issues
 // etc.
 ```
 
@@ -474,8 +474,7 @@ pub struct OAuthErrorResponse {
 
 ## Notas Finais
 
-- **Síncrono (blocking):** O wrapper usa `reqwest::blocking`. Threads são bloqueadas durante chamadas HTTP.
-  Para async, use `tokio::task::spawn_blocking` ou aguarde uma versão async futura.
+- **Async (tokio):** O wrapper usa `reqwest` com runtime tokio. Todas as chamadas HTTP são `async fn` e exigem `.await`.
 - **Tipos:** Todas as structs de domínio derivam `Debug, Clone, Serialize, Deserialize`.
 - **Filtros:** Structs de filtro implementam `Default` para construção parcial com `..Default::default()`.
 - **Re-export:** Todas as structs de tipo e resource são re-exportadas de `gitlab_wrapper`.

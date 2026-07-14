@@ -4,16 +4,12 @@
 //! e revogar um token existente, tornando-o inválido.
 
 use std::sync::LazyLock;
-use reqwest::blocking::Client;
 
 use crate::core::errors::{ErrorCategory, ErrorContext, GitLabError};
 use crate::types::OAuthTokenResponse;
 
-// Cliente HTTP dedicado — NÃO passa pelo rate limiter do `HttpClient`.
-// Isso é intencional: fluxos OAuth são chamadas esporádicas (não em loops).
-static OAUTH_CLIENT: LazyLock<Client> = LazyLock::new(|| {
-    Client::new()
-});
+// Cliente HTTP dedicado — requisições OAuth são esporádicas.
+static OAUTH_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
 
 /// Opções para renovar um token de acesso OAuth.
 pub struct RefreshTokenOptions {
@@ -42,22 +38,9 @@ pub struct RevokeTokenOptions {
 }
 
 /// Renova um token de acesso OAuth usando o `refresh_token`.
-///
-/// Envia uma requisição POST para `<base>/oauth/token` com `client_id`,
-/// `refresh_token` e `grant_type=refresh_token`. Opcionalmente inclui
-/// `client_secret` e `scope`.
-///
-/// ## Params
-/// - `options`: Opções de configuração para renovar o token.
-///
-/// ## Returns
-/// `Result<OAuthTokenResponse, GitLabError>` — novo token de acesso e,
-/// opcionalmente, um novo `refresh_token`.
-///
-/// ## Errors
-/// Retorna `GitLabError` em caso de falha de rede, erro de parse da resposta
-/// ou erro de autenticação retornado pelo GitLab.
-pub fn refresh_token(options: &RefreshTokenOptions) -> Result<OAuthTokenResponse, GitLabError> {
+pub async fn refresh_token(
+    options: &RefreshTokenOptions,
+) -> Result<OAuthTokenResponse, GitLabError> {
     let base = options.base_url.trim_end_matches('/');
     let url = format!("{}/oauth/token", base);
 
@@ -75,21 +58,18 @@ pub fn refresh_token(options: &RefreshTokenOptions) -> Result<OAuthTokenResponse
         form.push(("scope".to_string(), scope.clone()));
     }
 
-    let resp = OAUTH_CLIENT.post(&url).form(&form).send().map_err(|e| {
+    let resp = OAUTH_CLIENT.post(&url).form(&form).send().await.map_err(|e| {
         GitLabError::api(
             ErrorCategory::NetworkError,
             503,
             format!("Token refresh request failed: {e}"),
-            ErrorContext {
-                operation: Some("oauth.refresh_token".into()),
-                ..Default::default()
-            },
+            ErrorContext { operation: Some("oauth.refresh_token".into()), ..Default::default() },
         )
     })?;
 
     let status = resp.status();
     if status.is_success() {
-        resp.json().map_err(|e| {
+        resp.json().await.map_err(|e| {
             GitLabError::api(
                 ErrorCategory::ParseError,
                 500,
@@ -98,7 +78,7 @@ pub fn refresh_token(options: &RefreshTokenOptions) -> Result<OAuthTokenResponse
             )
         })
     } else {
-        let body = resp.text().unwrap_or_default();
+        let body = resp.text().await.unwrap_or_default();
         Err(GitLabError::api(
             ErrorCategory::AuthenticationFailed,
             status.as_u16(),
@@ -114,20 +94,7 @@ pub fn refresh_token(options: &RefreshTokenOptions) -> Result<OAuthTokenResponse
 }
 
 /// Revoga um token OAuth (acesso ou atualização), tornando-o inválido.
-///
-/// Envia uma requisição POST para `<base>/oauth/revoke` com `client_id`
-/// e `token`. Opcionalmente inclui `client_secret`.
-///
-/// ## Params
-/// - `options`: Opções de configuração para revogar o token.
-///
-/// ## Returns
-/// `Result<(), GitLabError>` — `Ok(())` se o token foi revogado com sucesso.
-///
-/// ## Errors
-/// Retorna `GitLabError` em caso de falha de rede ou erro de autenticação
-/// retornado pelo GitLab.
-pub fn revoke_token(options: &RevokeTokenOptions) -> Result<(), GitLabError> {
+pub async fn revoke_token(options: &RevokeTokenOptions) -> Result<(), GitLabError> {
     let base = options.base_url.trim_end_matches('/');
     let url = format!("{}/oauth/revoke", base);
 
@@ -140,15 +107,12 @@ pub fn revoke_token(options: &RevokeTokenOptions) -> Result<(), GitLabError> {
         form.push(("client_secret".to_string(), secret.clone()));
     }
 
-    let resp = OAUTH_CLIENT.post(&url).form(&form).send().map_err(|e| {
+    let resp = OAUTH_CLIENT.post(&url).form(&form).send().await.map_err(|e| {
         GitLabError::api(
             ErrorCategory::NetworkError,
             503,
             format!("Token revoke request failed: {e}"),
-            ErrorContext {
-                operation: Some("oauth.revoke_token".into()),
-                ..Default::default()
-            },
+            ErrorContext { operation: Some("oauth.revoke_token".into()), ..Default::default() },
         )
     })?;
 
@@ -156,7 +120,7 @@ pub fn revoke_token(options: &RevokeTokenOptions) -> Result<(), GitLabError> {
         Ok(())
     } else {
         let status_code = resp.status().as_u16();
-        let body = resp.text().unwrap_or_default();
+        let body = resp.text().await.unwrap_or_default();
         Err(GitLabError::api(
             ErrorCategory::AuthenticationFailed,
             status_code,

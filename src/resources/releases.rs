@@ -1,8 +1,8 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use std::sync::Arc;
 use crate::types::*;
 use crate::utils::encoding::encode_query_param;
+use std::sync::Arc;
 
 /// Recurso de API para operações com releases no GitLab.
 #[derive(Debug)]
@@ -27,9 +27,9 @@ impl ReleasesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list(&self, project_id: u64) -> Result<Vec<Release>, GitLabError> {
+    pub async fn list(&self, project_id: u64) -> Result<Vec<Release>, GitLabError> {
         let path = format!("projects/{}/releases", project_id);
-        self.http.get(&path, &[], "releases.list")
+        self.http.get(&path, &[], "releases.list").await
     }
 
     /// Obtém uma release pelo nome da tag.
@@ -44,9 +44,9 @@ impl ReleasesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get(&self, project_id: u64, tag_name: &str) -> Result<Release, GitLabError> {
+    pub async fn get(&self, project_id: u64, tag_name: &str) -> Result<Release, GitLabError> {
         let path = format!("projects/{}/releases/{}", project_id, encode_query_param(tag_name));
-        self.http.get(&path, &[], "releases.get")
+        self.http.get(&path, &[], "releases.get").await
     }
 
     /// Cria uma nova release.
@@ -61,9 +61,13 @@ impl ReleasesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create(&self, project_id: u64, payload: &CreateReleasePayload) -> Result<Release, GitLabError> {
+    pub async fn create(
+        &self,
+        project_id: u64,
+        payload: &CreateReleasePayload,
+    ) -> Result<Release, GitLabError> {
         let path = format!("projects/{}/releases", project_id);
-        self.http.post(&path, &payload, "releases.create")
+        self.http.post(&path, &payload, "releases.create").await
     }
 
     /// Atualiza uma release existente.
@@ -79,9 +83,14 @@ impl ReleasesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update(&self, project_id: u64, tag_name: &str, payload: &UpdateReleasePayload) -> Result<Release, GitLabError> {
+    pub async fn update(
+        &self,
+        project_id: u64,
+        tag_name: &str,
+        payload: &UpdateReleasePayload,
+    ) -> Result<Release, GitLabError> {
         let path = format!("projects/{}/releases/{}", project_id, encode_query_param(tag_name));
-        self.http.put(&path, &payload, "releases.update")
+        self.http.put(&path, &payload, "releases.update").await
     }
 
     /// Remove uma release.
@@ -96,9 +105,9 @@ impl ReleasesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete(&self, project_id: u64, tag_name: &str) -> Result<(), GitLabError> {
+    pub async fn delete(&self, project_id: u64, tag_name: &str) -> Result<(), GitLabError> {
         let path = format!("projects/{}/releases/{}", project_id, encode_query_param(tag_name));
-        self.http.delete(&path, &[], "releases.delete")
+        self.http.delete(&path, &[], "releases.delete").await
     }
 
     /// Cria um link de asset em uma release.
@@ -114,9 +123,18 @@ impl ReleasesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create_link(&self, project_id: u64, tag_name: &str, payload: &CreateReleaseLinkPayload) -> Result<ReleaseLinkItem, GitLabError> {
-        let path = format!("projects/{}/releases/{}/assets/links", project_id, encode_query_param(tag_name));
-        self.http.post(&path, &payload, "releases.create_link")
+    pub async fn create_link(
+        &self,
+        project_id: u64,
+        tag_name: &str,
+        payload: &CreateReleaseLinkPayload,
+    ) -> Result<ReleaseLinkItem, GitLabError> {
+        let path = format!(
+            "projects/{}/releases/{}/assets/links",
+            project_id,
+            encode_query_param(tag_name)
+        );
+        self.http.post(&path, &payload, "releases.create_link").await
     }
 
     /// Remove um link de asset de uma release.
@@ -132,8 +150,18 @@ impl ReleasesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete_link(&self, project_id: u64, tag_name: &str, link_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/releases/{}/assets/links/{}", project_id, encode_query_param(tag_name), link_id);
-        self.http.delete(&path, &[], "releases.delete_link")
+    pub async fn delete_link(
+        &self,
+        project_id: u64,
+        tag_name: &str,
+        link_id: u64,
+    ) -> Result<(), GitLabError> {
+        let path = format!(
+            "projects/{}/releases/{}/assets/links/{}",
+            project_id,
+            encode_query_param(tag_name),
+            link_id
+        );
+        self.http.delete(&path, &[], "releases.delete_link").await
     }
 }

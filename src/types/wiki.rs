@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::types::base::AuthorInfo;
+use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando uma página do wiki.
 #[derive(Debug, Clone, Serialize, Deserialize)]

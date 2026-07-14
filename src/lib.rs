@@ -1,10 +1,11 @@
 //! Cliente GitLab wrapper — crate principal que re-exporta todos os tipos, recursos e utilitários.
 //!
-//! Este crate fornece um cliente HTTP síncrono para a API REST do GitLab v4, incluindo
-//! gerenciamento de configuração, tratamento de erros, rate limiting e retry automático.
+//! Este crate fornece um cliente HTTP assíncrono (tokio) para a API REST do GitLab v4, incluindo
+//! gerenciamento de configuração, tratamento de erros, rate limiting e paginação com streams.
 //! Basta configurar [`GitLabConfig`] e chamar [`GitLabClient::new`] para começar.
 
 #![deny(unsafe_code)]
+#![deny(missing_docs)]
 
 /// Módulo central: configuração, constantes e tipos de erro.
 pub mod core;

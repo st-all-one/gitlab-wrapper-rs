@@ -1,9 +1,11 @@
 [package]
 name = "gitlab-wrapper-rs"
-version = "0.1.0"
-edition = "2021"
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.85"
+resolver = "2"
 license = "MPL-2.0"
-description = "Typed Rust wrapper for the GitLab REST API v4"
+description = "Typed async Rust wrapper for the GitLab REST API v4"
 repository = "https://github.com/st-all-one/gitlab-wrapper-rs"
 keywords = ["gitlab", "api", "rest", "wrapper"]
 categories = ["api-bindings"]
@@ -17,17 +19,39 @@ rustls = ["reqwest/rustls-tls"]
 native-tls = ["reqwest/native-tls"]
 
 [dependencies]
-reqwest = { version = "0.12", default-features = false, features = ["json", "blocking"] }
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 url = "2"
 thiserror = "2"
-log = "0.4"
+tracing = { version = "0.1", features = ["log"] }
 uuid = { version = "1", features = ["v7"] }
 sha2 = "0.10"
 getrandom = { version = "0.2", features = ["std"] }
+tokio = { version = "1", features = ["time", "sync"] }
+futures = "0.3"
+tokio-stream = "0.1"
+base64 = "0.22"
 
 [dev-dependencies]
-env_logger = "0.11"
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 wiremock = "0.6"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "encoding"
+harness = false
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "warn"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
+panic = "abort"

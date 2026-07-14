@@ -1,8 +1,8 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use std::sync::Arc;
 use crate::types::*;
 use crate::utils::encoding::filter_to_query;
+use std::sync::Arc;
 
 /// Recurso de API para operações com milestones no GitLab.
 #[derive(Debug)]
@@ -28,10 +28,14 @@ impl MilestonesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_project_milestones(&self, project_id: u64, filter: Option<&MilestoneFilter>) -> Result<Vec<Milestone>, GitLabError> {
+    pub async fn list_project_milestones(
+        &self,
+        project_id: u64,
+        filter: Option<&MilestoneFilter>,
+    ) -> Result<Vec<Milestone>, GitLabError> {
         let path = format!("projects/{}/milestones", project_id);
         let query = filter_to_query(filter);
-        self.http.get(&path, &query, "milestones.list_project")
+        self.http.get(&path, &query, "milestones.list_project").await
     }
 
     /// Obtém um milestone de projeto pelo ID.
@@ -46,9 +50,13 @@ impl MilestonesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get_project_milestone(&self, project_id: u64, milestone_id: u64) -> Result<Milestone, GitLabError> {
+    pub async fn get_project_milestone(
+        &self,
+        project_id: u64,
+        milestone_id: u64,
+    ) -> Result<Milestone, GitLabError> {
         let path = format!("projects/{}/milestones/{}", project_id, milestone_id);
-        self.http.get(&path, &[], "milestones.get_project")
+        self.http.get(&path, &[], "milestones.get_project").await
     }
 
     /// Cria um novo milestone em um projeto.
@@ -63,9 +71,13 @@ impl MilestonesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create_project_milestone(&self, project_id: u64, payload: &CreateMilestonePayload) -> Result<Milestone, GitLabError> {
+    pub async fn create_project_milestone(
+        &self,
+        project_id: u64,
+        payload: &CreateMilestonePayload,
+    ) -> Result<Milestone, GitLabError> {
         let path = format!("projects/{}/milestones", project_id);
-        self.http.post(&path, &payload, "milestones.create_project")
+        self.http.post(&path, &payload, "milestones.create_project").await
     }
 
     /// Atualiza um milestone de projeto.
@@ -81,9 +93,14 @@ impl MilestonesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update_project_milestone(&self, project_id: u64, milestone_id: u64, payload: &UpdateMilestonePayload) -> Result<Milestone, GitLabError> {
+    pub async fn update_project_milestone(
+        &self,
+        project_id: u64,
+        milestone_id: u64,
+        payload: &UpdateMilestonePayload,
+    ) -> Result<Milestone, GitLabError> {
         let path = format!("projects/{}/milestones/{}", project_id, milestone_id);
-        self.http.put(&path, &payload, "milestones.update_project")
+        self.http.put(&path, &payload, "milestones.update_project").await
     }
 
     /// Remove um milestone de projeto.
@@ -98,9 +115,13 @@ impl MilestonesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete_project_milestone(&self, project_id: u64, milestone_id: u64) -> Result<(), GitLabError> {
+    pub async fn delete_project_milestone(
+        &self,
+        project_id: u64,
+        milestone_id: u64,
+    ) -> Result<(), GitLabError> {
         let path = format!("projects/{}/milestones/{}", project_id, milestone_id);
-        self.http.delete(&path, &[], "milestones.delete_project")
+        self.http.delete(&path, &[], "milestones.delete_project").await
     }
 
     /// Lista issues associadas a um milestone de projeto.
@@ -115,9 +136,13 @@ impl MilestonesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_project_milestone_issues(&self, project_id: u64, milestone_id: u64) -> Result<Vec<Issue>, GitLabError> {
+    pub async fn list_project_milestone_issues(
+        &self,
+        project_id: u64,
+        milestone_id: u64,
+    ) -> Result<Vec<Issue>, GitLabError> {
         let path = format!("projects/{}/milestones/{}/issues", project_id, milestone_id);
-        self.http.get(&path, &[], "milestones.list_project_issues")
+        self.http.get(&path, &[], "milestones.list_project_issues").await
     }
 
     /// Lista merge requests associados a um milestone de projeto.
@@ -132,9 +157,13 @@ impl MilestonesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_project_milestone_merge_requests(&self, project_id: u64, milestone_id: u64) -> Result<Vec<MergeRequest>, GitLabError> {
+    pub async fn list_project_milestone_merge_requests(
+        &self,
+        project_id: u64,
+        milestone_id: u64,
+    ) -> Result<Vec<MergeRequest>, GitLabError> {
         let path = format!("projects/{}/milestones/{}/merge_requests", project_id, milestone_id);
-        self.http.get(&path, &[], "milestones.list_project_merge_requests")
+        self.http.get(&path, &[], "milestones.list_project_merge_requests").await
     }
 
     /// Lista milestones de um grupo com filtros opcionais.
@@ -149,10 +178,14 @@ impl MilestonesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_group_milestones(&self, group_id: u64, filter: Option<&MilestoneFilter>) -> Result<Vec<Milestone>, GitLabError> {
+    pub async fn list_group_milestones(
+        &self,
+        group_id: u64,
+        filter: Option<&MilestoneFilter>,
+    ) -> Result<Vec<Milestone>, GitLabError> {
         let path = format!("groups/{}/milestones", group_id);
         let query = filter_to_query(filter);
-        self.http.get(&path, &query, "milestones.list_group")
+        self.http.get(&path, &query, "milestones.list_group").await
     }
 
     /// Obtém um milestone de grupo pelo ID.
@@ -167,9 +200,13 @@ impl MilestonesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get_group_milestone(&self, group_id: u64, milestone_id: u64) -> Result<Milestone, GitLabError> {
+    pub async fn get_group_milestone(
+        &self,
+        group_id: u64,
+        milestone_id: u64,
+    ) -> Result<Milestone, GitLabError> {
         let path = format!("groups/{}/milestones/{}", group_id, milestone_id);
-        self.http.get(&path, &[], "milestones.get_group")
+        self.http.get(&path, &[], "milestones.get_group").await
     }
 
     /// Cria um novo milestone em um grupo.
@@ -184,9 +221,13 @@ impl MilestonesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create_group_milestone(&self, group_id: u64, payload: &CreateMilestonePayload) -> Result<Milestone, GitLabError> {
+    pub async fn create_group_milestone(
+        &self,
+        group_id: u64,
+        payload: &CreateMilestonePayload,
+    ) -> Result<Milestone, GitLabError> {
         let path = format!("groups/{}/milestones", group_id);
-        self.http.post(&path, &payload, "milestones.create_group")
+        self.http.post(&path, &payload, "milestones.create_group").await
     }
 
     /// Atualiza um milestone de grupo.
@@ -202,9 +243,14 @@ impl MilestonesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update_group_milestone(&self, group_id: u64, milestone_id: u64, payload: &UpdateMilestonePayload) -> Result<Milestone, GitLabError> {
+    pub async fn update_group_milestone(
+        &self,
+        group_id: u64,
+        milestone_id: u64,
+        payload: &UpdateMilestonePayload,
+    ) -> Result<Milestone, GitLabError> {
         let path = format!("groups/{}/milestones/{}", group_id, milestone_id);
-        self.http.put(&path, &payload, "milestones.update_group")
+        self.http.put(&path, &payload, "milestones.update_group").await
     }
 
     /// Remove um milestone de grupo.
@@ -219,9 +265,13 @@ impl MilestonesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete_group_milestone(&self, group_id: u64, milestone_id: u64) -> Result<(), GitLabError> {
+    pub async fn delete_group_milestone(
+        &self,
+        group_id: u64,
+        milestone_id: u64,
+    ) -> Result<(), GitLabError> {
         let path = format!("groups/{}/milestones/{}", group_id, milestone_id);
-        self.http.delete(&path, &[], "milestones.delete_group")
+        self.http.delete(&path, &[], "milestones.delete_group").await
     }
 
     /// Lista issues associadas a um milestone de grupo.
@@ -236,9 +286,13 @@ impl MilestonesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_group_milestone_issues(&self, group_id: u64, milestone_id: u64) -> Result<Vec<Issue>, GitLabError> {
+    pub async fn list_group_milestone_issues(
+        &self,
+        group_id: u64,
+        milestone_id: u64,
+    ) -> Result<Vec<Issue>, GitLabError> {
         let path = format!("groups/{}/milestones/{}/issues", group_id, milestone_id);
-        self.http.get(&path, &[], "milestones.list_group_issues")
+        self.http.get(&path, &[], "milestones.list_group_issues").await
     }
 
     /// Lista merge requests associados a um milestone de grupo.
@@ -253,8 +307,12 @@ impl MilestonesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_group_milestone_merge_requests(&self, group_id: u64, milestone_id: u64) -> Result<Vec<MergeRequest>, GitLabError> {
+    pub async fn list_group_milestone_merge_requests(
+        &self,
+        group_id: u64,
+        milestone_id: u64,
+    ) -> Result<Vec<MergeRequest>, GitLabError> {
         let path = format!("groups/{}/milestones/{}/merge_requests", group_id, milestone_id);
-        self.http.get(&path, &[], "milestones.list_group_merge_requests")
+        self.http.get(&path, &[], "milestones.list_group_merge_requests").await
     }
 }

@@ -3,17 +3,14 @@
 //! Permite gerar URLs de autorização e trocar o código de autorização
 //! por um token de acesso, com suporte opcional a PKCE (RFC 7636).
 
+use std::sync::LazyLock;
+
 use crate::core::errors::{ErrorCategory, ErrorContext, GitLabError};
 use crate::types::OAuthTokenResponse;
 use crate::utils::encoding::encode_query_param;
-use std::sync::LazyLock;
-use reqwest::blocking::Client;
 
-// Cliente HTTP dedicado — NÃO passa pelo rate limiter do `HttpClient`.
-// Isso é intencional: fluxos OAuth são chamadas esporádicas (não em loops).
-static OAUTH_CLIENT: LazyLock<Client> = LazyLock::new(|| {
-    Client::new()
-});
+// Cliente HTTP dedicado — requisições OAuth são esporádicas.
+static OAUTH_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
 
 /// Opções para gerar a URL de autorização OAuth.
 pub struct AuthCodeUrlOptions {
@@ -32,17 +29,6 @@ pub struct AuthCodeUrlOptions {
 }
 
 /// Gera a URL de autorização OAuth para o fluxo de código de autorização.
-///
-/// Monta a URL no formato `<base>/oauth/authorize` com os parâmetros
-/// `client_id`, `redirect_uri`, `response_type=code`, `scope` e `state`.
-/// Se `code_challenge` estiver presente, adiciona os parâmetros
-/// `code_challenge` e `code_challenge_method=S256`.
-///
-/// ## Params
-/// - `options`: Opções de configuração para a URL de autorização.
-///
-/// ## Returns
-/// `String` — URL de autorização totalmente qualificada.
 pub fn authorization_code_url(options: &AuthCodeUrlOptions) -> String {
     let base = options.base_url.trim_end_matches('/');
     let mut url = format!(
@@ -79,22 +65,7 @@ pub struct ExchangeCodeOptions {
 }
 
 /// Troca um código de autorização por um token de acesso OAuth.
-///
-/// Envia uma requisição POST para `<base>/oauth/token` com os parâmetros
-/// `client_id`, `code`, `redirect_uri` e `grant_type=authorization_code`.
-/// Opcionalmente inclui `client_secret` e `code_verifier`.
-///
-/// ## Params
-/// - `options`: Opções de configuração para a troca do código.
-///
-/// ## Returns
-/// `Result<OAuthTokenResponse, GitLabError>` — resposta contendo o token de acesso
-/// e demais informações em caso de sucesso.
-///
-/// ## Errors
-/// Retorna `GitLabError` em caso de falha de rede, erro de parse da resposta
-/// ou erro de autenticação retornado pelo GitLab.
-pub fn exchange_authorization_code(
+pub async fn exchange_authorization_code(
     options: &ExchangeCodeOptions,
 ) -> Result<OAuthTokenResponse, GitLabError> {
     let base = options.base_url.trim_end_matches('/');
@@ -115,7 +86,7 @@ pub fn exchange_authorization_code(
         form.push(("code_verifier".to_string(), verifier.clone()));
     }
 
-    let resp = OAUTH_CLIENT.post(&url).form(&form).send().map_err(|e| {
+    let resp = OAUTH_CLIENT.post(&url).form(&form).send().await.map_err(|e| {
         GitLabError::api(
             ErrorCategory::NetworkError,
             503,
@@ -129,7 +100,7 @@ pub fn exchange_authorization_code(
 
     let status = resp.status();
     if status.is_success() {
-        resp.json().map_err(|e| {
+        resp.json().await.map_err(|e| {
             GitLabError::api(
                 ErrorCategory::ParseError,
                 500,
@@ -138,7 +109,7 @@ pub fn exchange_authorization_code(
             )
         })
     } else {
-        let body = resp.text().unwrap_or_default();
+        let body = resp.text().await.unwrap_or_default();
         Err(GitLabError::api(
             ErrorCategory::AuthenticationFailed,
             status.as_u16(),

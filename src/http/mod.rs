@@ -7,6 +7,9 @@
 //! e um limitador de taxa baseado em janela deslizante
 //! (`rate_limiter::SlidingWindow`).
 
+/// Cliente HTTP assíncrono com rate limiting e retry.
 pub mod client;
+/// Estruturas e funções de paginação (offset e keyset).
 pub mod pagination;
+/// Limitador de taxa baseado em semáforo tokio.
 pub mod rate_limiter;

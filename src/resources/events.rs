@@ -1,8 +1,8 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use std::sync::Arc;
 use crate::types::*;
 use crate::utils::encoding::filter_to_query;
+use std::sync::Arc;
 
 /// Recurso de API para operações com eventos no GitLab.
 #[derive(Debug)]
@@ -27,9 +27,9 @@ impl EventsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list(&self, filter: Option<&EventFilter>) -> Result<Vec<Event>, GitLabError> {
+    pub async fn list(&self, filter: Option<&EventFilter>) -> Result<Vec<Event>, GitLabError> {
         let query = filter_to_query(filter);
-        self.http.get("events", &query, "events.list")
+        self.http.get("events", &query, "events.list").await
     }
 
     /// Lista eventos de um usuário específico.
@@ -44,10 +44,14 @@ impl EventsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_user_events(&self, user_id: u64, filter: Option<&EventFilter>) -> Result<Vec<Event>, GitLabError> {
+    pub async fn list_user_events(
+        &self,
+        user_id: u64,
+        filter: Option<&EventFilter>,
+    ) -> Result<Vec<Event>, GitLabError> {
         let path = format!("users/{}/events", user_id);
         let query = filter_to_query(filter);
-        self.http.get(&path, &query, "events.list_user")
+        self.http.get(&path, &query, "events.list_user").await
     }
 
     /// Lista eventos de um projeto específico.
@@ -62,9 +66,13 @@ impl EventsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_project_events(&self, project_id: u64, filter: Option<&EventFilter>) -> Result<Vec<Event>, GitLabError> {
+    pub async fn list_project_events(
+        &self,
+        project_id: u64,
+        filter: Option<&EventFilter>,
+    ) -> Result<Vec<Event>, GitLabError> {
         let path = format!("projects/{}/events", project_id);
         let query = filter_to_query(filter);
-        self.http.get(&path, &query, "events.list_project")
+        self.http.get(&path, &query, "events.list_project").await
     }
 }

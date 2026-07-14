@@ -1,8 +1,8 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use std::sync::Arc;
 use crate::types::*;
 use crate::utils::encoding::filter_to_query;
+use std::sync::Arc;
 
 /// Recurso de API para operações com commits no GitLab.
 #[derive(Debug)]
@@ -28,10 +28,14 @@ impl CommitsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list(&self, project_id: u64, filter: Option<&CommitFilter>) -> Result<Vec<Commit>, GitLabError> {
+    pub async fn list(
+        &self,
+        project_id: u64,
+        filter: Option<&CommitFilter>,
+    ) -> Result<Vec<Commit>, GitLabError> {
         let path = format!("projects/{}/repository/commits", project_id);
         let query = filter_to_query(filter);
-        self.http.get(&path, &query, "commits.list")
+        self.http.get(&path, &query, "commits.list").await
     }
 
     /// Obtém um commit pelo SHA.
@@ -46,9 +50,9 @@ impl CommitsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get(&self, project_id: u64, sha: &str) -> Result<Commit, GitLabError> {
+    pub async fn get(&self, project_id: u64, sha: &str) -> Result<Commit, GitLabError> {
         let path = format!("projects/{}/repository/commits/{}", project_id, sha);
-        self.http.get(&path, &[], "commits.get")
+        self.http.get(&path, &[], "commits.get").await
     }
 
     /// Cria um novo commit em um projeto.
@@ -63,9 +67,13 @@ impl CommitsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create(&self, project_id: u64, payload: &CreateCommitPayload) -> Result<Commit, GitLabError> {
+    pub async fn create(
+        &self,
+        project_id: u64,
+        payload: &CreateCommitPayload,
+    ) -> Result<Commit, GitLabError> {
         let path = format!("projects/{}/repository/commits", project_id);
-        self.http.post(&path, &payload, "commits.create")
+        self.http.post(&path, &payload, "commits.create").await
     }
 
     /// Aplica um cherry-pick de um commit para outra branch.
@@ -81,10 +89,15 @@ impl CommitsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn cherry_pick(&self, project_id: u64, sha: &str, target_branch: &str) -> Result<Commit, GitLabError> {
+    pub async fn cherry_pick(
+        &self,
+        project_id: u64,
+        sha: &str,
+        target_branch: &str,
+    ) -> Result<Commit, GitLabError> {
         let path = format!("projects/{}/repository/commits/{}/cherry_pick", project_id, sha);
         let body = serde_json::json!({ "branch": target_branch });
-        self.http.post(&path, &body, "commits.cherry_pick")
+        self.http.post(&path, &body, "commits.cherry_pick").await
     }
 
     /// Reverte um commit em uma branch alvo.
@@ -100,10 +113,15 @@ impl CommitsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn revert(&self, project_id: u64, sha: &str, target_branch: &str) -> Result<Commit, GitLabError> {
+    pub async fn revert(
+        &self,
+        project_id: u64,
+        sha: &str,
+        target_branch: &str,
+    ) -> Result<Commit, GitLabError> {
         let path = format!("projects/{}/repository/commits/{}/revert", project_id, sha);
         let body = serde_json::json!({ "branch": target_branch });
-        self.http.post(&path, &body, "commits.revert")
+        self.http.post(&path, &body, "commits.revert").await
     }
 
     /// Obtém o diff de um commit.
@@ -118,9 +136,9 @@ impl CommitsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn diff(&self, project_id: u64, sha: &str) -> Result<Vec<CommitDiff>, GitLabError> {
+    pub async fn diff(&self, project_id: u64, sha: &str) -> Result<Vec<CommitDiff>, GitLabError> {
         let path = format!("projects/{}/repository/commits/{}/diff", project_id, sha);
-        self.http.get(&path, &[], "commits.diff")
+        self.http.get(&path, &[], "commits.diff").await
     }
 
     /// Obtém as referências (branches/tags) que contêm um commit.
@@ -135,9 +153,9 @@ impl CommitsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn refs(&self, project_id: u64, sha: &str) -> Result<serde_json::Value, GitLabError> {
+    pub async fn refs(&self, project_id: u64, sha: &str) -> Result<serde_json::Value, GitLabError> {
         let path = format!("projects/{}/repository/commits/{}/refs", project_id, sha);
-        self.http.get(&path, &[], "commits.refs")
+        self.http.get(&path, &[], "commits.refs").await
     }
 
     /// Lista comentários de um commit.
@@ -152,9 +170,9 @@ impl CommitsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn comments(&self, project_id: u64, sha: &str) -> Result<Vec<Note>, GitLabError> {
+    pub async fn comments(&self, project_id: u64, sha: &str) -> Result<Vec<Note>, GitLabError> {
         let path = format!("projects/{}/repository/commits/{}/comments", project_id, sha);
-        self.http.get(&path, &[], "commits.comments")
+        self.http.get(&path, &[], "commits.comments").await
     }
 
     /// Adiciona um comentário a um commit.
@@ -170,9 +188,14 @@ impl CommitsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn add_comment(&self, project_id: u64, sha: &str, note: &str) -> Result<Note, GitLabError> {
+    pub async fn add_comment(
+        &self,
+        project_id: u64,
+        sha: &str,
+        note: &str,
+    ) -> Result<Note, GitLabError> {
         let path = format!("projects/{}/repository/commits/{}/comments", project_id, sha);
         let body = serde_json::json!({ "note": note });
-        self.http.post(&path, &body, "commits.add_comment")
+        self.http.post(&path, &body, "commits.add_comment").await
     }
 }

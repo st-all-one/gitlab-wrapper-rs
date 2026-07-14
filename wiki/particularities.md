@@ -12,7 +12,7 @@ Comportamentos, pegadinhas e características específicas da API do GitLab que 
 - [OAuth Scopes](#oauth-scopes)
 - [Detecção de Spam](#detecção-de-spam)
 - [Rate Limiting](#rate-limiting)
-- [Blocking vs Async](#blocking-vs-async)
+- [Async Runtime (Tokio)](#async-runtime-tokio)
 - [Paginação](#paginação)
 
 ---
@@ -32,19 +32,19 @@ No wrapper Rust, isso é refletido nas assinaturas dos métodos:
 
 ```rust
 // ✅ Correto: grupos/projetos usam id global
-let project = gl.projects.get(42)?;
-let group = gl.groups.get(1)?;
+let project = gl.projects.get(42).await?;
+let group = gl.groups.get(1).await?;
 
 // ✅ Correto: issues escopadas a projeto usam iid
-let issue = gl.issues.get(1, 5)?;
+let issue = gl.issues.get(1, 5).await?;
 //   project_id ^  ^ issue_iid (não id global)
 
 // ✅ Correto: MRs também usam iid
-let mr = gl.merge_requests.get(1, 7)?;
+let mr = gl.merge_requests.get(1, 7).await?;
 //                project_id ^  ^ mr_iid
 
 // ✅ Branches/tags usam nome (string)
-let branch = gl.branches.get(1, "main")?;
+let branch = gl.branches.get(1, "main").await?;
 ```
 
 ### Regra Prática
@@ -65,13 +65,13 @@ que codifica automaticamente o `/` do caminho para `%2F`:
 
 ```rust
 // IDs numéricos sempre funcionam
-let project = gl.projects.get(42)?;
+let project = gl.projects.get(42).await?;
 
 // get_by_path codifica '/' → '%2F' automaticamente
-let project = gl.projects.get_by_path("group/subgroup/project-name")?;
+let project = gl.projects.get_by_path("group/subgroup/project-name").await?;
 
 // O mesmo para grupos
-let group = gl.groups.get_by_path("parent/subgroup")?;
+let group = gl.groups.get_by_path("parent/subgroup").await?;
 ```
 
 Para codificação manual de outros parâmetros:
@@ -87,7 +87,7 @@ O caminho do arquivo é codificado automaticamente pelo wrapper:
 
 ```rust
 // O wrapper codifica o file_path automaticamente com encode_query_param
-let file = gl.repository_files.get(1, "docs/README.md", "main")?;
+let file = gl.repository_files.get(1, "docs/README.md", "main").await?;
 // Internamente: /projects/1/repository/files/docs%2FREADME.md
 ```
 
@@ -196,40 +196,42 @@ Err(GitLabError::RateLimited { retry_after, context }) => {
 
 ---
 
-## Blocking vs Async
+## Async Runtime (Tokio)
 
-O `gitlab-wrapper-rs` é **síncrono (blocking)**. Todas as chamadas HTTP
-bloqueiam a thread atual.
+O `gitlab-wrapper-rs` é **assíncrono** e usa `tokio` como runtime. Todas as chamadas
+HTTP são `async fn` e devem ser chamadas com `.await`.
 
-### Para ambientes async (Tokio, async-std):
+### Uso Básico
 
 ```rust
+use gitlab_wrapper::{GitLabClient, GitLabConfig};
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let gl = GitLabClient::new(/* ... */)?;
+    let gl = GitLabClient::new(GitLabConfig {
+        base_url: "https://gitlab.com".into(),
+        token: Some(std::env::var("GITLAB_TOKEN")?),
+        ..Default::default()
+    })?;
 
-    // spawn_blocking libera a thread do runtime
-    let projects = tokio::task::spawn_blocking(move || {
-        gl.projects.list(None)
-    }).await??;
+    let projects = gl.projects.list(None).await?;
+    println!("{} projetos", projects.len());
     Ok(())
 }
 ```
 
-### Benefícios do Blocking
+### Benefícios do Async
 
-- **Zero overhead**: sem runtime async, sem `Future`, sem `Pin`
-- **Stack traces limpos**: pilha de chamadas linear e previsível
-- **Sem cores mágicas**: `Send + Sync` é trivial com `Arc<Mutex>`
-- **Ideal para CLIs, scripts, bg jobs**: processos que não precisam de concorrência massiva
+- **Eficiência**: zero threads ociosas durante I/O — milhares de conexões simultâneas com dezenas de threads
+- **Composição**: `tokio::join!`, `tokio::select!`, `tokio::spawn` para paralelismo real
+- **Integração nativa**: funciona diretamente com `axum`, `actix-web`, `warp` e outros frameworks web
+- **Streams**: paginação lazy com `futures::Stream` (em breve)
 
-### Quando usar Async
+### Quando usar `spawn_blocking`
 
-- Servidores HTTP que fazem chamadas ao GitLab durante o request handling
-- Aplicações com muitas conexões concorrentes
-- Streaming de dados em tempo real (WebSocket, SSE)
-
-Nesses casos, use `spawn_blocking` ou aguarde o lançamento de uma versão async.
+O `spawn_blocking` **não é necessário** para este wrapper (ele já é async). Use
+`spawn_blocking` apenas para operações CPU-bound ou chamadas a bibliotecas
+síncronas que você mistura com o wrapper.
 
 ---
 
@@ -289,7 +291,7 @@ println!("Total: {}", all.len());
 
 | Aspecto | TS (ref) | Rust |
 |---------|----------|------|
-| **Runtime** | Deno (async) | Síncrono (blocking) |
+| **Runtime** | Deno (async) | Tokio (async) |
 | **Paginação** | Lazy (iteradores) | Eager (Vec<T>) |
 | **Erros** | Classe `GitLabWrapperError` | Enum `GitLabError` |
 | **Null safety** | `undefined` / `null` | `Option<T>` |

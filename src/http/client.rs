@@ -1,28 +1,24 @@
-use std::sync::Mutex;
-use std::time::Duration;
-
-use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use reqwest::StatusCode;
+use reqwest::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue};
 
 use crate::core::config::{AuthMethod, ResolvedConfig};
-use crate::core::constants::{DEFAULT_PER_PAGE, API_VERSION, USER_AGENT_VALUE};
+use crate::core::constants::{API_VERSION, DEFAULT_PER_PAGE, USER_AGENT_VALUE};
 use crate::core::errors::{ErrorCategory, ErrorContext, GitLabError};
 use crate::http::pagination::{
-    extract_error_messages, extract_retry_after, parse_pagination_headers, PaginationInfo,
+    PaginationInfo, extract_error_messages, extract_retry_after, parse_pagination_headers,
 };
-use crate::http::rate_limiter::SlidingWindow;
+use crate::http::rate_limiter::RateLimiter;
 use crate::utils::encoding::encode_query_param;
 
-/// Cliente HTTP interno que encapsula chamadas à API do GitLab.
+/// Cliente HTTP interno que encapsula chamadas assíncronas à API do GitLab.
 ///
-/// Mantém um `reqwest::blocking::Client`, a configuração resolvida,
-/// e um limitador de taxa (`SlidingWindow`) protegido por `Mutex`
-/// para garantir respeito ao limite de requisições por segundo.
-#[derive(Debug)]
+/// Mantém um `reqwest::Client`, a configuração resolvida,
+/// e um limitador de taxa assíncrono (`RateLimiter`) baseado em semáforo.
+#[derive(Debug, Clone)]
 pub(crate) struct HttpClient {
-    client: reqwest::blocking::Client,
+    client: reqwest::Client,
     config: ResolvedConfig,
-    rate_limiter: Mutex<SlidingWindow>,
+    rate_limiter: RateLimiter,
 }
 
 impl HttpClient {
@@ -34,35 +30,24 @@ impl HttpClient {
     /// ## Returns
     /// `HttpClient` — nova instância pronta para uso.
     pub fn new(config: ResolvedConfig) -> Self {
-        let rate_limiter = SlidingWindow::new(config.max_rps, Duration::from_secs(1));
-        let client = reqwest::blocking::Client::builder()
+        let rate_limiter = RateLimiter::new(config.max_rps);
+        let client = reqwest::Client::builder()
             .timeout(config.timeout)
             .user_agent(USER_AGENT_VALUE)
             .build()
             .expect("Failed to build HTTP client");
-        Self {
-            client,
-            config,
-            rate_limiter: Mutex::new(rate_limiter),
-        }
+        Self { client, config, rate_limiter }
     }
 
     /// Monta a URL completa para uma requisição à API do GitLab.
     ///
     /// Concatena a URL base, o prefixo da API e o *path* informado,
-    /// adicionando os parâmetros de consulta (*query string*) com
-    /// codificação percentual.
-    ///
-    /// ## Params
-    /// - `path`: Caminho relativo do endpoint (ex.: `"projects"`).
-    /// - `query`: Pares chave-valor dos parâmetros de consulta.
-    ///
-    /// ## Returns
-    /// `Result<String, GitLabError>` — URL completa ou erro de configuração.
-    ///
-    /// ## Errors
-    /// Retorna `GitLabError` se a URL base for inválida.
-    pub(crate) fn build_url(&self, path: &str, query: &[(String, String)]) -> Result<String, GitLabError> {
+    /// adicionando os parâmetros de consulta com codificação percentual.
+    pub(crate) fn build_url(
+        &self,
+        path: &str,
+        query: &[(String, String)],
+    ) -> Result<String, GitLabError> {
         let base = self.config.base_url.trim_end_matches('/');
         let path = path.trim_start_matches('/');
         let mut url = format!("{}/api/{}/{}", base, API_VERSION, path);
@@ -106,8 +91,9 @@ impl HttpClient {
                     let value = format!("Bearer {}", token);
                     headers.insert(
                         AUTHORIZATION,
-                        HeaderValue::from_str(&value)
-                            .map_err(|e| GitLabError::Config(format!("Invalid bearer token: {e}")))?,
+                        HeaderValue::from_str(&value).map_err(|e| {
+                            GitLabError::Config(format!("Invalid bearer token: {e}"))
+                        })?,
                     );
                 }
             }
@@ -128,9 +114,9 @@ impl HttpClient {
         Ok(headers)
     }
 
-    fn handle_response<T: serde::de::DeserializeOwned>(
+    async fn handle_response<T: serde::de::DeserializeOwned>(
         &self,
-        response: reqwest::blocking::Response,
+        response: reqwest::Response,
         operation: &str,
     ) -> Result<T, GitLabError> {
         let status = response.status();
@@ -138,11 +124,10 @@ impl HttpClient {
 
         if status.is_success() || status == StatusCode::NOT_MODIFIED {
             if http_status == 204 {
-                return serde_json::from_value(serde_json::Value::Null)
-                    .map_err(GitLabError::from);
+                return serde_json::from_value(serde_json::Value::Null).map_err(GitLabError::from);
             }
-            return response.json::<T>().map_err(|e| {
-                log::error!(target: "gitlab_wrapper::http", "{} failed to parse JSON: {}", operation, e);
+            return response.json::<T>().await.map_err(|e| {
+                tracing::error!(target: "gitlab_wrapper::http", "{} failed to parse JSON: {}", operation, e);
                 GitLabError::Api {
                     category: ErrorCategory::ParseError,
                     status: http_status,
@@ -157,11 +142,12 @@ impl HttpClient {
             });
         }
 
-        let body = response.text().unwrap_or_default();
+        let body = response.text().await.unwrap_or_default();
         let api_errors = extract_error_messages(&body);
-        let category = ErrorCategory::from_status(http_status).unwrap_or(ErrorCategory::InternalError);
+        let category =
+            ErrorCategory::from_status(http_status).unwrap_or(ErrorCategory::InternalError);
 
-        log::error!(target: "gitlab_wrapper::http", "{} failed: status={}, category={}", operation, http_status, category);
+        tracing::error!(target: "gitlab_wrapper::http", "{} failed: status={}, category={}", operation, http_status, category);
 
         if http_status == 429 {
             let retry_after = extract_retry_after(&body);
@@ -176,76 +162,55 @@ impl HttpClient {
             });
         }
 
-        Err(GitLabError::api(category, http_status, body.clone(), ErrorContext {
-            operation: Some(operation.to_string()),
-            http_status: Some(http_status),
-            response_body: Some(body),
-            api_errors,
-        }))
+        Err(GitLabError::api(
+            category,
+            http_status,
+            body.clone(),
+            ErrorContext {
+                operation: Some(operation.to_string()),
+                http_status: Some(http_status),
+                response_body: Some(body),
+                api_errors,
+            },
+        ))
     }
 
     /// Executa uma requisição HTTP GET.
-    ///
-    /// ## Params
-    /// - `path`: Caminho relativo do endpoint.
-    /// - `query`: Parâmetros de consulta.
-    /// - `operation`: Identificador textual da operação (para logging).
-    ///
-    /// ## Returns
-    /// `Result<T, GitLabError>` — resposta desserializada no tipo `T`.
-    ///
-    /// ## Errors
-    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de parsing.
-    pub fn get<T: serde::de::DeserializeOwned>(
+    pub async fn get<T: serde::de::DeserializeOwned>(
         &self,
         path: &str,
         query: &[(String, String)],
         operation: &str,
     ) -> Result<T, GitLabError> {
-        self.rate_limiter.lock().unwrap_or_else(|e| e.into_inner()).acquire();
+        self.rate_limiter.acquire().await;
         let url = self.build_url(path, query)?;
         let headers = self.build_headers(None)?;
 
-        log::debug!(target: "gitlab_wrapper::http", "GET {} - {}", operation, path);
+        tracing::debug!(target: "gitlab_wrapper::http", "GET {} - {}", operation, path);
 
-        let resp = self.client.get(&url).headers(headers).send().map_err(|e| {
-            log::error!(target: "gitlab_wrapper::http", "GET {} failed: {}", operation, e);
+        let resp = self.client.get(&url).headers(headers).send().await.map_err(|e| {
+            tracing::error!(target: "gitlab_wrapper::http", "GET {} failed: {}", operation, e);
             GitLabError::from(e)
         })?;
 
-        self.handle_response(resp, operation)
+        self.handle_response(resp, operation).await
     }
 
     /// Executa uma requisição HTTP GET e retorna os dados junto com informações de paginação.
-    ///
-    /// Diferente de `get()`, este método também parseia os cabeçalhos de paginação
-    /// (`x-page`, `x-total`, `x-next-page`, etc.) retornando um `PaginationInfo`.
-    ///
-    /// ## Params
-    /// - `path`: Caminho relativo do endpoint.
-    /// - `query`: Parâmetros de consulta.
-    /// - `operation`: Identificador textual da operação (para logging).
-    ///
-    /// ## Returns
-    /// `Result<(T, PaginationInfo), GitLabError>` — tupla com os dados desserializados
-    /// e as informações de paginação.
-    ///
-    /// ## Errors
-    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de parsing.
-    pub fn get_with_headers<T: serde::de::DeserializeOwned>(
+    pub async fn get_with_headers<T: serde::de::DeserializeOwned>(
         &self,
         path: &str,
         query: &[(String, String)],
         operation: &str,
     ) -> Result<(T, PaginationInfo), GitLabError> {
-        self.rate_limiter.lock().unwrap_or_else(|e| e.into_inner()).acquire();
+        self.rate_limiter.acquire().await;
         let url = self.build_url(path, query)?;
         let headers = self.build_headers(None)?;
 
-        log::debug!(target: "gitlab_wrapper::http", "GET {} (with headers) - {}", operation, path);
+        tracing::debug!(target: "gitlab_wrapper::http", "GET {} (with headers) - {}", operation, path);
 
-        let resp = self.client.get(&url).headers(headers).send().map_err(|e| {
-            log::error!(target: "gitlab_wrapper::http", "GET {} failed: {}", operation, e);
+        let resp = self.client.get(&url).headers(headers).send().await.map_err(|e| {
+            tracing::error!(target: "gitlab_wrapper::http", "GET {} failed: {}", operation, e);
             GitLabError::from(e)
         })?;
 
@@ -254,8 +219,8 @@ impl HttpClient {
         let http_status = status.as_u16();
 
         if status.is_success() {
-            let data: T = resp.json().map_err(|e| {
-                log::error!(target: "gitlab_wrapper::http", "GET {} failed to parse JSON: {}", operation, e);
+            let data: T = resp.json().await.map_err(|e| {
+                tracing::error!(target: "gitlab_wrapper::http", "GET {} failed to parse JSON: {}", operation, e);
                 GitLabError::Api {
                     category: ErrorCategory::ParseError,
                     status: http_status,
@@ -271,110 +236,84 @@ impl HttpClient {
             return Ok((data, pagination));
         }
 
-        let body = resp.text().unwrap_or_default();
+        let body = resp.text().await.unwrap_or_default();
         let api_errors = extract_error_messages(&body);
-        let category = ErrorCategory::from_status(http_status).unwrap_or(ErrorCategory::InternalError);
+        let category =
+            ErrorCategory::from_status(http_status).unwrap_or(ErrorCategory::InternalError);
 
-        log::error!(target: "gitlab_wrapper::http", "{} failed: status={}, category={}", operation, http_status, category);
+        tracing::error!(target: "gitlab_wrapper::http", "{} failed: status={}, category={}", operation, http_status, category);
 
-        Err(GitLabError::api(category, http_status, body.clone(), ErrorContext {
-            operation: Some(operation.to_string()),
-            http_status: Some(http_status),
-            response_body: Some(body),
-            api_errors,
-        }))
+        Err(GitLabError::api(
+            category,
+            http_status,
+            body.clone(),
+            ErrorContext {
+                operation: Some(operation.to_string()),
+                http_status: Some(http_status),
+                response_body: Some(body),
+                api_errors,
+            },
+        ))
     }
 
     /// Executa uma requisição HTTP POST.
-    ///
-    /// ## Params
-    /// - `path`: Caminho relativo do endpoint.
-    /// - `body`: Dados a serem enviados no corpo da requisição (serializado como JSON).
-    /// - `operation`: Identificador textual da operação (para logging).
-    ///
-    /// ## Returns
-    /// `Result<T, GitLabError>` — resposta desserializada no tipo `T`.
-    ///
-    /// ## Errors
-    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de parsing.
-    pub fn post<T: serde::de::DeserializeOwned, B: serde::Serialize>(
+    pub async fn post<T: serde::de::DeserializeOwned, B: serde::Serialize>(
         &self,
         path: &str,
         body: &B,
         operation: &str,
     ) -> Result<T, GitLabError> {
-        self.rate_limiter.lock().unwrap_or_else(|e| e.into_inner()).acquire();
+        self.rate_limiter.acquire().await;
         let url = self.build_url(path, &[])?;
         let headers = self.build_headers(None)?;
 
-        log::debug!(target: "gitlab_wrapper::http", "POST {} - {}", operation, path);
+        tracing::debug!(target: "gitlab_wrapper::http", "POST {} - {}", operation, path);
 
-        let resp = self.client.post(&url).headers(headers).json(body).send().map_err(|e| {
-            log::error!(target: "gitlab_wrapper::http", "POST {} failed: {}", operation, e);
-            GitLabError::from(e)
-        })?;
+        let resp =
+            self.client.post(&url).headers(headers).json(body).send().await.map_err(|e| {
+                tracing::error!(target: "gitlab_wrapper::http", "POST {} failed: {}", operation, e);
+                GitLabError::from(e)
+            })?;
 
-        self.handle_response(resp, operation)
+        self.handle_response(resp, operation).await
     }
 
     /// Executa uma requisição HTTP PUT.
-    ///
-    /// ## Params
-    /// - `path`: Caminho relativo do endpoint.
-    /// - `body`: Dados a serem enviados no corpo da requisição (serializado como JSON).
-    /// - `operation`: Identificador textual da operação (para logging).
-    ///
-    /// ## Returns
-    /// `Result<T, GitLabError>` — resposta desserializada no tipo `T`.
-    ///
-    /// ## Errors
-    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de parsing.
-    pub fn put<T: serde::de::DeserializeOwned, B: serde::Serialize>(
+    pub async fn put<T: serde::de::DeserializeOwned, B: serde::Serialize>(
         &self,
         path: &str,
         body: &B,
         operation: &str,
     ) -> Result<T, GitLabError> {
-        self.rate_limiter.lock().unwrap_or_else(|e| e.into_inner()).acquire();
+        self.rate_limiter.acquire().await;
         let url = self.build_url(path, &[])?;
         let headers = self.build_headers(None)?;
 
-        log::debug!(target: "gitlab_wrapper::http", "PUT {} - {}", operation, path);
+        tracing::debug!(target: "gitlab_wrapper::http", "PUT {} - {}", operation, path);
 
-        let resp = self.client.put(&url).headers(headers).json(body).send().map_err(|e| {
-            log::error!(target: "gitlab_wrapper::http", "PUT {} failed: {}", operation, e);
+        let resp = self.client.put(&url).headers(headers).json(body).send().await.map_err(|e| {
+            tracing::error!(target: "gitlab_wrapper::http", "PUT {} failed: {}", operation, e);
             GitLabError::from(e)
         })?;
 
-        self.handle_response(resp, operation)
+        self.handle_response(resp, operation).await
     }
 
     /// Executa uma requisição HTTP DELETE.
-    ///
-    /// ## Params
-    /// - `path`: Caminho relativo do endpoint.
-    /// - `query`: Parâmetros de consulta.
-    /// - `operation`: Identificador textual da operação (para logging).
-    ///
-    /// ## Returns
-    /// `Result<(), GitLabError>` — vazio em caso de sucesso.
-    ///
-    /// ## Errors
-    /// Retorna `GitLabError` em caso de falha de rede ou erro HTTP.
-    pub fn delete(
+    pub async fn delete(
         &self,
         path: &str,
         query: &[(String, String)],
         operation: &str,
     ) -> Result<(), GitLabError> {
-        self.rate_limiter.lock().unwrap_or_else(|e| e.into_inner()).acquire();
+        self.rate_limiter.acquire().await;
         let url = self.build_url(path, query)?;
         let headers = self.build_headers(None)?;
 
-        log::debug!(target: "gitlab_wrapper::http", "DELETE {} - {}", operation, path);
+        tracing::debug!(target: "gitlab_wrapper::http", "DELETE {} - {}", operation, path);
 
-        let resp = self.client.delete(&url).headers(headers).send().map_err(|e| {
-            log::error!(target: "gitlab_wrapper::http", "DELETE {} failed: {}", operation, e);
+        let resp = self.client.delete(&url).headers(headers).send().await.map_err(|e| {
+            tracing::error!(target: "gitlab_wrapper::http", "DELETE {} failed: {}", operation, e);
             GitLabError::from(e)
         })?;
 
@@ -383,9 +322,10 @@ impl HttpClient {
             return Ok(());
         }
 
-        let body = resp.text().unwrap_or_default();
+        let body = resp.text().await.unwrap_or_default();
         let http_status = status.as_u16();
-        let category = ErrorCategory::from_status(http_status).unwrap_or(ErrorCategory::InternalError);
+        let category =
+            ErrorCategory::from_status(http_status).unwrap_or(ErrorCategory::InternalError);
 
         Err(GitLabError::api(
             category,
@@ -401,66 +341,41 @@ impl HttpClient {
     }
 
     /// Executa uma requisição HTTP DELETE com corpo.
-    ///
-    /// ## Params
-    /// - `path`: Caminho relativo do endpoint.
-    /// - `body`: Dados a serem enviados no corpo da requisição (serializado como JSON).
-    /// - `operation`: Identificador textual da operação (para logging).
-    ///
-    /// ## Returns
-    /// `Result<T, GitLabError>` — resposta desserializada no tipo `T`.
-    ///
-    /// ## Errors
-    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de parsing.
-    pub fn delete_with_body<T: serde::de::DeserializeOwned, B: serde::Serialize>(
+    pub async fn delete_with_body<T: serde::de::DeserializeOwned, B: serde::Serialize>(
         &self,
         path: &str,
         body: &B,
         operation: &str,
     ) -> Result<T, GitLabError> {
-        self.rate_limiter.lock().unwrap_or_else(|e| e.into_inner()).acquire();
+        self.rate_limiter.acquire().await;
         let url = self.build_url(path, &[])?;
         let headers = self.build_headers(None)?;
 
-        log::debug!(target: "gitlab_wrapper::http", "DELETE {} (with body) - {}", operation, path);
+        tracing::debug!(target: "gitlab_wrapper::http", "DELETE {} (with body) - {}", operation, path);
 
-        let resp = self.client.delete(&url).headers(headers).json(body).send().map_err(|e| {
-            log::error!(target: "gitlab_wrapper::http", "DELETE {} failed: {}", operation, e);
+        let resp = self.client.delete(&url).headers(headers).json(body).send().await.map_err(|e| {
+            tracing::error!(target: "gitlab_wrapper::http", "DELETE {} failed: {}", operation, e);
             GitLabError::from(e)
         })?;
 
-        self.handle_response(resp, operation)
+        self.handle_response(resp, operation).await
     }
 
     /// Executa uma requisição HTTP GET e retorna o corpo como bytes brutos.
-    ///
-    /// Útil para *downloads* de arquivos ou endpoints que retornam conteúdo
-    /// não-JSON (ex.: conteúdo de um repositório).
-    ///
-    /// ## Params
-    /// - `path`: Caminho relativo do endpoint.
-    /// - `query`: Parâmetros de consulta.
-    /// - `operation`: Identificador textual da operação (para logging).
-    ///
-    /// ## Returns
-    /// `Result<Vec<u8>, GitLabError>` — corpo da resposta como bytes.
-    ///
-    /// ## Errors
-    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de leitura.
-    pub fn get_raw(
+    pub async fn get_raw(
         &self,
         path: &str,
         query: &[(String, String)],
         operation: &str,
     ) -> Result<Vec<u8>, GitLabError> {
-        self.rate_limiter.lock().unwrap_or_else(|e| e.into_inner()).acquire();
+        self.rate_limiter.acquire().await;
         let url = self.build_url(path, query)?;
         let headers = self.build_headers(None)?;
 
-        log::debug!(target: "gitlab_wrapper::http", "GET raw {} - {}", operation, path);
+        tracing::debug!(target: "gitlab_wrapper::http", "GET raw {} - {}", operation, path);
 
-        let resp = self.client.get(&url).headers(headers).send().map_err(|e| {
-            log::error!(target: "gitlab_wrapper::http", "GET raw {} failed: {}", operation, e);
+        let resp = self.client.get(&url).headers(headers).send().await.map_err(|e| {
+            tracing::error!(target: "gitlab_wrapper::http", "GET raw {} failed: {}", operation, e);
             GitLabError::from(e)
         })?;
 
@@ -468,23 +383,22 @@ impl HttpClient {
         let http_status = status.as_u16();
 
         if status.is_success() {
-            return resp.bytes().map(|b| b.to_vec()).map_err(|e| {
-                GitLabError::Api {
-                    category: ErrorCategory::ParseError,
-                    status: http_status,
-                    detail: format!("Failed to read response body: {}", e),
-                    instance: String::new(),
-                    context: Box::new(ErrorContext {
-                        operation: Some(operation.to_string()),
-                        http_status: Some(http_status),
-                        ..Default::default()
-                    }),
-                }
+            return resp.bytes().await.map(|b| b.to_vec()).map_err(|e| GitLabError::Api {
+                category: ErrorCategory::ParseError,
+                status: http_status,
+                detail: format!("Failed to read response body: {}", e),
+                instance: String::new(),
+                context: Box::new(ErrorContext {
+                    operation: Some(operation.to_string()),
+                    http_status: Some(http_status),
+                    ..Default::default()
+                }),
             });
         }
 
-        let body = resp.text().unwrap_or_default();
-        let category = ErrorCategory::from_status(http_status).unwrap_or(ErrorCategory::InternalError);
+        let body = resp.text().await.unwrap_or_default();
+        let category =
+            ErrorCategory::from_status(http_status).unwrap_or(ErrorCategory::InternalError);
         Err(GitLabError::api(
             category,
             http_status,
@@ -499,34 +413,20 @@ impl HttpClient {
     }
 
     /// Executa uma requisição HTTP GET e retorna o corpo como texto bruto.
-    ///
-    /// Similar a `get_raw`, mas retorna uma `String` em vez de bytes.
-    /// Útil para endpoints que retornam texto simples.
-    ///
-    /// ## Params
-    /// - `path`: Caminho relativo do endpoint.
-    /// - `query`: Parâmetros de consulta.
-    /// - `operation`: Identificador textual da operação (para logging).
-    ///
-    /// ## Returns
-    /// `Result<String, GitLabError>` — corpo da resposta como texto.
-    ///
-    /// ## Errors
-    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de leitura.
-    pub fn get_raw_text(
+    pub async fn get_raw_text(
         &self,
         path: &str,
         query: &[(String, String)],
         operation: &str,
     ) -> Result<String, GitLabError> {
-        self.rate_limiter.lock().unwrap_or_else(|e| e.into_inner()).acquire();
+        self.rate_limiter.acquire().await;
         let url = self.build_url(path, query)?;
         let headers = self.build_headers(None)?;
 
-        log::debug!(target: "gitlab_wrapper::http", "GET raw text {} - {}", operation, path);
+        tracing::debug!(target: "gitlab_wrapper::http", "GET raw text {} - {}", operation, path);
 
-        let resp = self.client.get(&url).headers(headers).send().map_err(|e| {
-            log::error!(target: "gitlab_wrapper::http", "GET raw text {} failed: {}", operation, e);
+        let resp = self.client.get(&url).headers(headers).send().await.map_err(|e| {
+            tracing::error!(target: "gitlab_wrapper::http", "GET raw text {} failed: {}", operation, e);
             GitLabError::from(e)
         })?;
 
@@ -534,23 +434,22 @@ impl HttpClient {
         let http_status = status.as_u16();
 
         if status.is_success() {
-            return resp.text().map_err(|e| {
-                GitLabError::Api {
-                    category: ErrorCategory::ParseError,
-                    status: http_status,
-                    detail: format!("Failed to read response body: {}", e),
-                    instance: String::new(),
-                    context: Box::new(ErrorContext {
-                        operation: Some(operation.to_string()),
-                        http_status: Some(http_status),
-                        ..Default::default()
-                    }),
-                }
+            return resp.text().await.map_err(|e| GitLabError::Api {
+                category: ErrorCategory::ParseError,
+                status: http_status,
+                detail: format!("Failed to read response body: {}", e),
+                instance: String::new(),
+                context: Box::new(ErrorContext {
+                    operation: Some(operation.to_string()),
+                    http_status: Some(http_status),
+                    ..Default::default()
+                }),
             });
         }
 
-        let body = resp.text().unwrap_or_default();
-        let category = ErrorCategory::from_status(http_status).unwrap_or(ErrorCategory::InternalError);
+        let body = resp.text().await.unwrap_or_default();
+        let category =
+            ErrorCategory::from_status(http_status).unwrap_or(ErrorCategory::InternalError);
         Err(GitLabError::api(
             category,
             http_status,
@@ -565,71 +464,71 @@ impl HttpClient {
     }
 
     /// Auto-pagina todas as páginas de um endpoint paginado (paginação baseada em página).
-    ///
-    /// Itera sobre as páginas utilizando o parâmetro `page` e o cabeçalho `x-next-page`
-    /// até que não haja mais páginas disponíveis.
-    ///
-    /// ## Params
-    /// - `path`: Caminho relativo do endpoint.
-    /// - `query`: Parâmetros de consulta base (sem `page`/`per_page`).
-    /// - `operation`: Identificador textual da operação (para logging).
-    ///
-    /// ## Returns
-    /// `Result<Vec<T>, GitLabError>` — lista com todos os itens de todas as páginas.
-    ///
-    /// ## Errors
-    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de parsing.
-    pub fn paginate_all<T: serde::de::DeserializeOwned>(
+    pub async fn paginate_all<T: serde::de::DeserializeOwned + 'static>(
         &self,
         path: &str,
         query: &[(String, String)],
         operation: &str,
     ) -> Result<Vec<T>, GitLabError> {
         use crate::http::pagination::paginate_all as auto_paginate;
+        let this = self.clone();
+        let path_owned = path.to_string();
+        let query_owned = query.to_vec();
+        let op_owned = operation.to_string();
         auto_paginate(
-            |page: u32| {
-                let mut paged_query = query.to_vec();
-                paged_query.push(("per_page".to_string(), DEFAULT_PER_PAGE.to_string()));
-                paged_query.push(("page".to_string(), page.to_string()));
-                self.get_with_headers(path, &paged_query, operation)
+            {
+                let this = this.clone();
+                let path = path_owned.clone();
+                let query = query_owned.clone();
+                let op = op_owned.clone();
+                move |page: u32| {
+                    let this = this.clone();
+                    let mut paged_query = query.clone();
+                    paged_query.push(("per_page".to_string(), DEFAULT_PER_PAGE.to_string()));
+                    paged_query.push(("page".to_string(), page.to_string()));
+                    let path = path.clone();
+                    let op = op.clone();
+                    Box::pin(async move { this.get_with_headers(&path, &paged_query, &op).await })
+                }
             },
-            operation,
+            &op_owned,
         )
+        .await
     }
 
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "reserved for future keyset pagination")]
     /// Auto-pagina todas as páginas de um endpoint com paginação por cursor (*keyset*).
-    ///
-    /// Utiliza o cabeçalho `x-next-cursor` para navegar entre as páginas,
-    /// adequado para endpoints do GitLab que suportam keyset pagination.
-    ///
-    /// ## Params
-    /// - `path`: Caminho relativo do endpoint.
-    /// - `query`: Parâmetros de consulta base.
-    /// - `operation`: Identificador textual da operação (para logging).
-    ///
-    /// ## Returns
-    /// `Result<Vec<T>, GitLabError>` — lista com todos os itens de todas as páginas.
-    ///
-    /// ## Errors
-    /// Retorna `GitLabError` em caso de falha de rede, erro HTTP ou erro de parsing.
-    pub fn keyset_paginate_all<T: serde::de::DeserializeOwned>(
+    pub async fn keyset_paginate_all<T: serde::de::DeserializeOwned + 'static>(
         &self,
         path: &str,
         query: &[(String, String)],
         operation: &str,
     ) -> Result<Vec<T>, GitLabError> {
         use crate::http::pagination::keyset_paginate_all as auto_keyset;
+        let this = self.clone();
+        let path_owned = path.to_string();
+        let query_owned = query.to_vec();
+        let op_owned = operation.to_string();
         auto_keyset(
-            |cursor: Option<&str>| {
-                let mut paged_query = query.to_vec();
-                paged_query.push(("pagination".to_string(), "keyset".to_string()));
-                if let Some(c) = cursor {
-                    paged_query.push(("id_after".to_string(), c.to_string()));
+            {
+                let this = this.clone();
+                let path = path_owned.clone();
+                let query = query_owned.clone();
+                let op = op_owned.clone();
+                move |cursor: Option<String>| {
+                    let this = this.clone();
+                    let mut paged_query = query.clone();
+                    paged_query.push(("pagination".to_string(), "keyset".to_string()));
+                    if let Some(c) = cursor {
+                        paged_query.push(("id_after".to_string(), c));
+                    }
+                    let path = path.clone();
+                    let op = op.clone();
+                    Box::pin(async move { this.get_with_headers(&path, &paged_query, &op).await })
                 }
-                self.get_with_headers(path, &paged_query, operation)
             },
-            operation,
+            &op_owned,
         )
+        .await
     }
 }

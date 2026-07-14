@@ -68,10 +68,7 @@ impl GitLabClient {
         let config_ = resolved.clone();
         let http = Arc::new(HttpClient::new(resolved));
 
-        log::info!(target: "gitlab_wrapper", "GitLabClient initialized");
-        Ok(Self {
-            config: config_,
-            inner: ResourceGroup::new(http),
-        })
+        tracing::info!(target: "gitlab_wrapper", "GitLabClient initialized");
+        Ok(Self { config: config_, inner: ResourceGroup::new(http) })
     }
 }

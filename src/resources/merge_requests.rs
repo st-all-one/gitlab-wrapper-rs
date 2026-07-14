@@ -1,8 +1,8 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use std::sync::Arc;
 use crate::types::*;
 use crate::utils::encoding::filter_to_query;
+use std::sync::Arc;
 
 /// Recurso de API para operações com merge requests no GitLab.
 #[derive(Debug)]
@@ -27,9 +27,12 @@ impl MergeRequestsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list(&self, filter: Option<&MergeRequestFilter>) -> Result<Vec<MergeRequest>, GitLabError> {
+    pub async fn list(
+        &self,
+        filter: Option<&MergeRequestFilter>,
+    ) -> Result<Vec<MergeRequest>, GitLabError> {
         let query = filter_to_query(filter);
-        self.http.get("merge_requests", &query, "merge_requests.list")
+        self.http.get("merge_requests", &query, "merge_requests.list").await
     }
 
     /// Lista merge requests de um projeto específico.
@@ -44,10 +47,14 @@ impl MergeRequestsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_for_project(&self, project_id: u64, filter: Option<&MergeRequestFilter>) -> Result<Vec<MergeRequest>, GitLabError> {
+    pub async fn list_for_project(
+        &self,
+        project_id: u64,
+        filter: Option<&MergeRequestFilter>,
+    ) -> Result<Vec<MergeRequest>, GitLabError> {
         let path = format!("projects/{}/merge_requests", project_id);
         let query = filter_to_query(filter);
-        self.http.get(&path, &query, "merge_requests.list_for_project")
+        self.http.get(&path, &query, "merge_requests.list_for_project").await
     }
 
     /// Obtém um merge request pelo ID do projeto e IID do MR.
@@ -62,9 +69,9 @@ impl MergeRequestsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get(&self, project_id: u64, mr_iid: u32) -> Result<MergeRequest, GitLabError> {
+    pub async fn get(&self, project_id: u64, mr_iid: u32) -> Result<MergeRequest, GitLabError> {
         let path = format!("projects/{}/merge_requests/{}", project_id, mr_iid);
-        self.http.get(&path, &[], "merge_requests.get")
+        self.http.get(&path, &[], "merge_requests.get").await
     }
 
     /// Cria um novo merge request em um projeto.
@@ -79,9 +86,13 @@ impl MergeRequestsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create(&self, project_id: u64, payload: &CreateMergeRequestPayload) -> Result<MergeRequest, GitLabError> {
+    pub async fn create(
+        &self,
+        project_id: u64,
+        payload: &CreateMergeRequestPayload,
+    ) -> Result<MergeRequest, GitLabError> {
         let path = format!("projects/{}/merge_requests", project_id);
-        self.http.post(&path, &payload, "merge_requests.create")
+        self.http.post(&path, &payload, "merge_requests.create").await
     }
 
     /// Atualiza um merge request existente.
@@ -97,9 +108,14 @@ impl MergeRequestsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update(&self, project_id: u64, mr_iid: u32, payload: &UpdateMergeRequestPayload) -> Result<MergeRequest, GitLabError> {
+    pub async fn update(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+        payload: &UpdateMergeRequestPayload,
+    ) -> Result<MergeRequest, GitLabError> {
         let path = format!("projects/{}/merge_requests/{}", project_id, mr_iid);
-        self.http.put(&path, &payload, "merge_requests.update")
+        self.http.put(&path, &payload, "merge_requests.update").await
     }
 
     /// Remove um merge request.
@@ -114,9 +130,9 @@ impl MergeRequestsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete(&self, project_id: u64, mr_iid: u32) -> Result<(), GitLabError> {
+    pub async fn delete(&self, project_id: u64, mr_iid: u32) -> Result<(), GitLabError> {
         let path = format!("projects/{}/merge_requests/{}", project_id, mr_iid);
-        self.http.delete(&path, &[], "merge_requests.delete")
+        self.http.delete(&path, &[], "merge_requests.delete").await
     }
 
     /// Realiza o merge de um merge request.
@@ -132,14 +148,19 @@ impl MergeRequestsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn merge(&self, project_id: u64, mr_iid: u32, payload: Option<&MergePayload>) -> Result<MergeRequest, GitLabError> {
+    pub async fn merge(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+        payload: Option<&MergePayload>,
+    ) -> Result<MergeRequest, GitLabError> {
         let path = format!("projects/{}/merge_requests/{}/merge", project_id, mr_iid);
         let body = payload.unwrap_or(&MergePayload {
             merge_commit_message: None,
             squash_commit_message: None,
             should_remove_source_branch: None,
         });
-        self.http.put(&path, &body, "merge_requests.merge")
+        self.http.put(&path, &body, "merge_requests.merge").await
     }
 
     /// Cancela o merge automático quando a pipeline for bem-sucedida.
@@ -154,9 +175,22 @@ impl MergeRequestsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn cancel_merge_when_pipeline_succeeds(&self, project_id: u64, mr_iid: u32) -> Result<MergeRequest, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/cancel_merge_when_pipeline_succeeds", project_id, mr_iid);
-        self.http.post(&path, &serde_json::Value::Null, "merge_requests.cancel_merge_when_pipeline_succeeds")
+    pub async fn cancel_merge_when_pipeline_succeeds(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+    ) -> Result<MergeRequest, GitLabError> {
+        let path = format!(
+            "projects/{}/merge_requests/{}/cancel_merge_when_pipeline_succeeds",
+            project_id, mr_iid
+        );
+        self.http
+            .post(
+                &path,
+                &serde_json::Value::Null,
+                "merge_requests.cancel_merge_when_pipeline_succeeds",
+            )
+            .await
     }
 
     /// Aprova um merge request.
@@ -171,9 +205,9 @@ impl MergeRequestsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn approve(&self, project_id: u64, mr_iid: u32) -> Result<MergeRequest, GitLabError> {
+    pub async fn approve(&self, project_id: u64, mr_iid: u32) -> Result<MergeRequest, GitLabError> {
         let path = format!("projects/{}/merge_requests/{}/approve", project_id, mr_iid);
-        self.http.post(&path, &serde_json::Value::Null, "merge_requests.approve")
+        self.http.post(&path, &serde_json::Value::Null, "merge_requests.approve").await
     }
 
     /// Remove a aprovação de um merge request.
@@ -188,9 +222,9 @@ impl MergeRequestsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn unapprove(&self, project_id: u64, mr_iid: u32) -> Result<(), GitLabError> {
+    pub async fn unapprove(&self, project_id: u64, mr_iid: u32) -> Result<(), GitLabError> {
         let path = format!("projects/{}/merge_requests/{}/unapprove", project_id, mr_iid);
-        self.http.post(&path, &serde_json::Value::Null, "merge_requests.unapprove")
+        self.http.post(&path, &serde_json::Value::Null, "merge_requests.unapprove").await
     }
 
     /// Faz rebase de um merge request.
@@ -205,9 +239,9 @@ impl MergeRequestsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn rebase(&self, project_id: u64, mr_iid: u32) -> Result<(), GitLabError> {
+    pub async fn rebase(&self, project_id: u64, mr_iid: u32) -> Result<(), GitLabError> {
         let path = format!("projects/{}/merge_requests/{}/rebase", project_id, mr_iid);
-        self.http.put(&path, &serde_json::Value::Null, "merge_requests.rebase")
+        self.http.put(&path, &serde_json::Value::Null, "merge_requests.rebase").await
     }
 
     /// Lista commits associados a um merge request.
@@ -222,9 +256,9 @@ impl MergeRequestsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn commits(&self, project_id: u64, mr_iid: u32) -> Result<Vec<Commit>, GitLabError> {
+    pub async fn commits(&self, project_id: u64, mr_iid: u32) -> Result<Vec<Commit>, GitLabError> {
         let path = format!("projects/{}/merge_requests/{}/commits", project_id, mr_iid);
-        self.http.get(&path, &[], "merge_requests.commits")
+        self.http.get(&path, &[], "merge_requests.commits").await
     }
 
     /// Lista as alterações (diff) de um merge request.
@@ -239,9 +273,13 @@ impl MergeRequestsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn changes(&self, project_id: u64, mr_iid: u32) -> Result<serde_json::Value, GitLabError> {
+    pub async fn changes(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+    ) -> Result<serde_json::Value, GitLabError> {
         let path = format!("projects/{}/merge_requests/{}/changes", project_id, mr_iid);
-        self.http.get(&path, &[], "merge_requests.changes")
+        self.http.get(&path, &[], "merge_requests.changes").await
     }
 
     /// Lista merge requests de um grupo.
@@ -256,9 +294,13 @@ impl MergeRequestsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_by_group(&self, group_id: u64, filter: Option<&MergeRequestFilter>) -> Result<Vec<MergeRequest>, GitLabError> {
+    pub async fn list_by_group(
+        &self,
+        group_id: u64,
+        filter: Option<&MergeRequestFilter>,
+    ) -> Result<Vec<MergeRequest>, GitLabError> {
         let path = format!("groups/{}/merge_requests", group_id);
         let query = filter_to_query(filter);
-        self.http.get(&path, &query, "merge_requests.list_by_group")
+        self.http.get(&path, &query, "merge_requests.list_by_group").await
     }
 }

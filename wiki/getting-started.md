@@ -22,8 +22,8 @@ Adicione ao seu `Cargo.toml`:
 ```toml
 [dependencies]
 gitlab-wrapper-rs = { git = "https://github.com/st-all-one/gitlab-wrapper-rs" }
-log = "0.4"  # opcional — para logs internos
-env_logger = "0.11"  # opcional — para exibir logs no terminal
+tokio = { version = "1", features = ["macros", "rt"] }  # runtime async
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }  # logs
 ```
 
 Ou, se publicado no crates.io:
@@ -114,7 +114,7 @@ let gl = GitLabClient::new(GitLabConfig {
     ..Default::default()
 })?;
 
-let projects = gl.projects.list(None)?;
+let projects = gl.projects.list(None).await?;
 println!("Encontrados {} projetos", projects.len());
 if let Some(first) = projects.first() {
     println!("Primeiro: {} (ID: {})", first.name, first.id);
@@ -125,11 +125,11 @@ if let Some(first) = projects.first() {
 
 ```rust
 // Por ID numérico
-let project = gl.projects.get(42)?;
+let project = gl.projects.get(42).await?;
 println!("Projeto: {} (ID: {})", project.name, project.id);
 
 // Por caminho URL-encoded
-let project = gl.projects.get_by_path("group/subgroup/my-project")?;
+let project = gl.projects.get_by_path("group/subgroup/my-project").await?;
 // Internamente codifica '/' → '%2F' automaticamente
 // Equivalente a: /api/v4/projects/group%2Fsubgroup%2Fmy-project
 ```
@@ -137,7 +137,7 @@ let project = gl.projects.get_by_path("group/subgroup/my-project")?;
 O mesmo vale para grupos:
 
 ```rust
-let group = gl.groups.get_by_path("parent/subgroup")?;
+let group = gl.groups.get_by_path("parent/subgroup").await?;
 ```
 
 ---
@@ -147,10 +147,10 @@ let group = gl.groups.get_by_path("parent/subgroup")?;
 Todos os erros são do tipo `GitLabError`, um enum que segue o padrão **RFC 7807**:
 
 ```rust
-use gitlab_wrapper::{GitLabClient, GitLabError, ErrorCategory};
+use gitlab_wrapper::{ErrorCategory, GitLabClient, GitLabError};
 
-fn exemplo(gl: &GitLabClient) -> Result<(), GitLabError> {
-    match gl.projects.get(99999) {
+async fn exemplo(gl: &GitLabClient) -> Result<(), GitLabError> {
+    match gl.projects.get(99999).await? {
         Ok(project) => println!("{}", project.name),
         Err(GitLabError::Api { category, status, detail, instance, .. }) => {
             eprintln!("[{}] {} (UUID: {})", status, detail, instance);
@@ -200,10 +200,10 @@ O wrapper oferece dois modos de paginação, ambos **eager** (carregam tudo na m
 
 ```rust
 // Lista simples — primeira página apenas
-let projects = gl.projects.list(None)?;
+let projects = gl.projects.list(None).await?;
 
 // Auto-paginar todas as páginas (apenas em ProjectsResource)
-let all_projects = gl.projects.list_all(None)?;
+let all_projects = gl.projects.list_all(None).await?;
 ```
 
 Para paginar manualmente, use `ProjectFilter`:
@@ -211,22 +211,19 @@ Para paginar manualmente, use `ProjectFilter`:
 ```rust
 use gitlab_wrapper::ProjectFilter;
 
-let projects = gl.projects.list(Some(&ProjectFilter {
-    per_page: Some(100),
-    page: Some(2),
-    ..Default::default()
-}))?;
+let projects = gl.projects
+    .list(Some(&ProjectFilter {
+        per_page: Some(100),
+        page: Some(2),
+        ..Default::default()
+    }))
+    .await?;
 ```
 
 ### Paginação Keyset (cursor)
 
-Disponível via `HttpClient::keyset_paginate_all()` para uso interno nos resources.
-Para usar com projetos:
-
-```rust
-// O resource não expõe diretamente, mas o HttpClient tem o método
-// gl.http.keyset_paginate_all(...)  (pub(crate))
-```
+Disponível via `HttpClient::keyset_paginate_all()` para uso interno nos resources
+(implementado, mas não exposto publicamente nos resources).
 
 > **⚠️ Nota:** Diferente do wrapper TypeScript que oferece iteradores lazy (`AsyncIterableIterator`),
 > o Rust implementa paginação **eager** (coleta tudo em `Vec<T>`). Para conjuntos muito grandes,

@@ -1,22 +1,16 @@
 //! Fluxo Device Authorization Grant (OAuth 2.0) para GitLab.
 //!
 //! Implementa o fluxo de autorização para dispositivos sem navegador,
-//! conforme a RFC 8628. Permite solicitar autorização, consultar
-//! o status e obter o token final.
+//! conforme a RFC 8628.
 
 use std::sync::LazyLock;
 use std::time::Duration;
 
-use reqwest::blocking::Client;
-
 use crate::core::errors::{ErrorCategory, ErrorContext, GitLabError};
 use crate::types::{DeviceAuthResponse, OAuthTokenResponse};
 
-// Cliente HTTP dedicado — NÃO passa pelo rate limiter do `HttpClient`.
-// Isso é intencional: fluxos OAuth são chamadas esporádicas (não em loops).
-static OAUTH_CLIENT: LazyLock<Client> = LazyLock::new(|| {
-    Client::new()
-});
+// Cliente HTTP dedicado — requisições OAuth são esporádicas.
+static OAUTH_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
 
 /// Opções para solicitar autorização de dispositivo.
 pub struct DeviceAuthOptions {
@@ -51,23 +45,7 @@ pub struct GetTokenOptions {
 }
 
 /// Solicita autorização de dispositivo ao GitLab.
-///
-/// Envia uma requisição POST para `<base>/oauth/authorize_device` com
-/// `client_id` e, opcionalmente, `scope`. Retorna os dados necessários
-/// para o usuário autorizar o aplicativo em um navegador.
-///
-/// ## Params
-/// - `options`: Opções de configuração para a solicitação.
-///
-/// ## Returns
-/// `Result<DeviceAuthResponse, GitLabError>` — resposta contendo `device_code`,
-/// `user_code`, `verification_uri`, `verification_uri_complete`, `interval`
-/// e `expires_in`.
-///
-/// ## Errors
-/// Retorna `GitLabError` em caso de falha de rede, erro de parse da resposta
-/// ou erro de autorização retornado pelo GitLab.
-pub fn request_device_authorization(
+pub async fn request_device_authorization(
     options: &DeviceAuthOptions,
 ) -> Result<DeviceAuthResponse, GitLabError> {
     let base = options.base_url.trim_end_matches('/');
@@ -78,7 +56,7 @@ pub fn request_device_authorization(
         form.push(("scope".to_string(), scope.clone()));
     }
 
-    let resp = OAUTH_CLIENT.post(&url).form(&form).send().map_err(|e| {
+    let resp = OAUTH_CLIENT.post(&url).form(&form).send().await.map_err(|e| {
         GitLabError::api(
             ErrorCategory::NetworkError,
             503,
@@ -92,7 +70,7 @@ pub fn request_device_authorization(
 
     let status = resp.status();
     if status.is_success() {
-        resp.json().map_err(|e| {
+        resp.json().await.map_err(|e| {
             GitLabError::api(
                 ErrorCategory::ParseError,
                 500,
@@ -101,7 +79,7 @@ pub fn request_device_authorization(
             )
         })
     } else {
-        let body = resp.text().unwrap_or_default();
+        let body = resp.text().await.unwrap_or_default();
         Err(GitLabError::api(
             ErrorCategory::AuthorizationDenied,
             status.as_u16(),
@@ -117,22 +95,7 @@ pub fn request_device_authorization(
 }
 
 /// Consulta o token de acesso após a autorização do dispositivo.
-///
-/// Envia uma requisição POST para `<base>/oauth/token` com `client_id`,
-/// `device_code` e `grant_type`. Deve ser chamada repetidamente em
-/// intervalo definido até que o usuário autorize ou o tempo expire.
-///
-/// ## Params
-/// - `options`: Opções de configuração para a consulta.
-///
-/// ## Returns
-/// `Result<OAuthTokenResponse, GitLabError>` — resposta contendo o token de acesso
-/// em caso de sucesso.
-///
-/// ## Errors
-/// Retorna `GitLabError` com `AuthorizationDenied` se a autorização ainda estiver
-/// pendente ou foi negada, ou erro de rede/parse.
-pub fn poll_for_token(options: &PollTokenOptions) -> Result<OAuthTokenResponse, GitLabError> {
+pub async fn poll_for_token(options: &PollTokenOptions) -> Result<OAuthTokenResponse, GitLabError> {
     let base = options.base_url.trim_end_matches('/');
     let url = format!("{}/oauth/token", base);
 
@@ -148,21 +111,18 @@ pub fn poll_for_token(options: &PollTokenOptions) -> Result<OAuthTokenResponse, 
         ),
     ];
 
-    let resp = OAUTH_CLIENT.post(&url).form(&form).send().map_err(|e| {
+    let resp = OAUTH_CLIENT.post(&url).form(&form).send().await.map_err(|e| {
         GitLabError::api(
             ErrorCategory::NetworkError,
             503,
             format!("Token poll request failed: {e}"),
-            ErrorContext {
-                operation: Some("oauth.poll_for_token".into()),
-                ..Default::default()
-            },
+            ErrorContext { operation: Some("oauth.poll_for_token".into()), ..Default::default() },
         )
     })?;
 
     let status = resp.status();
     if status.is_success() {
-        resp.json().map_err(|e| {
+        resp.json().await.map_err(|e| {
             GitLabError::api(
                 ErrorCategory::ParseError,
                 500,
@@ -171,7 +131,7 @@ pub fn poll_for_token(options: &PollTokenOptions) -> Result<OAuthTokenResponse, 
             )
         })
     } else {
-        let body = resp.text().unwrap_or_default();
+        let body = resp.text().await.unwrap_or_default();
         Err(GitLabError::api(
             ErrorCategory::AuthorizationDenied,
             status.as_u16(),
@@ -189,27 +149,17 @@ pub fn poll_for_token(options: &PollTokenOptions) -> Result<OAuthTokenResponse, 
 /// Obtém um token de acesso via fluxo Device Grant completo.
 ///
 /// Combina [`request_device_authorization`] e [`poll_for_token`] em um
-/// único loop: solicita a autorização, exibe instruções no log e fica
-/// consultando até obter o token ou atingir o tempo máximo (`expires_in`).
-///
-/// ## Params
-/// - `options`: Opções de configuração para obter o token.
-///
-/// ## Returns
-/// `Result<OAuthTokenResponse, GitLabError>` — token de acesso obtido com sucesso.
-///
-/// ## Errors
-/// Retorna `GitLabError` com `Timeout` se o tempo máximo de espera for excedido,
-/// ou demais erros de rede e autorização.
-pub fn get_token(options: &GetTokenOptions) -> Result<OAuthTokenResponse, GitLabError> {
+/// único loop assíncrono.
+pub async fn get_token(options: &GetTokenOptions) -> Result<OAuthTokenResponse, GitLabError> {
     let device_response = request_device_authorization(&DeviceAuthOptions {
         base_url: options.base_url.clone(),
         client_id: options.client_id.clone(),
         scope: options.scope.clone(),
-    })?;
+    })
+    .await?;
 
-    log::info!(target: "gitlab_wrapper::oauth", "Open this URL in your browser: {}", device_response.verification_uri_complete.as_deref().unwrap_or(&device_response.verification_uri));
-    log::info!(target: "gitlab_wrapper::oauth", "Enter the code: {}", device_response.user_code);
+    tracing::info!(target: "gitlab_wrapper::oauth", "Open this URL in your browser: {}", device_response.verification_uri_complete.as_deref().unwrap_or(&device_response.verification_uri));
+    tracing::info!(target: "gitlab_wrapper::oauth", "Enter the code: {}", device_response.user_code);
 
     let interval = Duration::from_secs(device_response.interval.max(5));
     let max_duration = Duration::from_secs(device_response.expires_in);
@@ -222,21 +172,20 @@ pub fn get_token(options: &GetTokenOptions) -> Result<OAuthTokenResponse, GitLab
                 ErrorCategory::Timeout,
                 504,
                 "Device authorization timed out",
-                ErrorContext {
-                    operation: Some("oauth.get_token".into()),
-                    ..Default::default()
-                },
+                ErrorContext { operation: Some("oauth.get_token".into()), ..Default::default() },
             ));
         }
 
-        std::thread::sleep(interval);
+        tokio::time::sleep(interval).await;
 
         match poll_for_token(&PollTokenOptions {
             base_url: options.base_url.clone(),
             client_id: options.client_id.clone(),
             device_code: device_response.device_code.clone(),
             grant_type: None,
-        }) {
+        })
+        .await
+        {
             Ok(token) => return Ok(token),
             Err(ref err) if is_authorization_pending(err) => continue,
             Err(_) => continue,
@@ -246,15 +195,6 @@ pub fn get_token(options: &GetTokenOptions) -> Result<OAuthTokenResponse, GitLab
 
 /// Verifica se o erro retornado indica que a autorização do dispositivo
 /// ainda está pendente.
-///
-/// Analisa o corpo da resposta de erro em busca do campo `error` com valor
-/// `"authorization_pending"`.
-///
-/// ## Params
-/// - `err`: Erro retornado pela API do GitLab.
-///
-/// ## Returns
-/// `bool` — `true` se o erro for `authorization_pending`, `false` caso contrário.
 fn is_authorization_pending(err: &GitLabError) -> bool {
     if let GitLabError::Api { context, .. } = err {
         if let Some(ref body) = context.response_body {

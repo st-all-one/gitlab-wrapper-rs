@@ -1,9 +1,9 @@
-use crate::core::errors::GitLabError;
 use crate::ErrorCategory;
+use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use std::sync::Arc;
 use crate::types::*;
 use crate::utils::encoding::filter_to_query;
+use std::sync::Arc;
 
 /// Recurso de API para operações com usuários no GitLab.
 #[derive(Debug)]
@@ -28,9 +28,9 @@ impl UsersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list(&self, filter: Option<&UserFilter>) -> Result<Vec<User>, GitLabError> {
+    pub async fn list(&self, filter: Option<&UserFilter>) -> Result<Vec<User>, GitLabError> {
         let query = filter_to_query(filter);
-        self.http.get("users", &query, "users.list")
+        self.http.get("users", &query, "users.list").await
     }
 
     /// Obtém um usuário pelo ID.
@@ -44,9 +44,9 @@ impl UsersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get(&self, user_id: u64) -> Result<User, GitLabError> {
+    pub async fn get(&self, user_id: u64) -> Result<User, GitLabError> {
         let path = format!("users/{}", user_id);
-        self.http.get(&path, &[], "users.get")
+        self.http.get(&path, &[], "users.get").await
     }
 
     /// Obtém os dados do usuário autenticado.
@@ -57,8 +57,8 @@ impl UsersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get_current(&self) -> Result<User, GitLabError> {
-        self.http.get("user", &[], "users.get_current")
+    pub async fn get_current(&self) -> Result<User, GitLabError> {
+        self.http.get("user", &[], "users.get_current").await
     }
 
     /// Cria um novo usuário.
@@ -72,8 +72,8 @@ impl UsersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create(&self, payload: &CreateUserPayload) -> Result<User, GitLabError> {
-        self.http.post("users", &payload, "users.create")
+    pub async fn create(&self, payload: &CreateUserPayload) -> Result<User, GitLabError> {
+        self.http.post("users", &payload, "users.create").await
     }
 
     /// Atualiza um usuário existente.
@@ -88,9 +88,13 @@ impl UsersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update(&self, user_id: u64, payload: &UpdateUserPayload) -> Result<User, GitLabError> {
+    pub async fn update(
+        &self,
+        user_id: u64,
+        payload: &UpdateUserPayload,
+    ) -> Result<User, GitLabError> {
         let path = format!("users/{}", user_id);
-        self.http.put(&path, &payload, "users.update")
+        self.http.put(&path, &payload, "users.update").await
     }
 
     /// Remove um usuário.
@@ -104,9 +108,9 @@ impl UsersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete(&self, user_id: u64) -> Result<(), GitLabError> {
+    pub async fn delete(&self, user_id: u64) -> Result<(), GitLabError> {
         let path = format!("users/{}", user_id);
-        self.http.delete(&path, &[], "users.delete")
+        self.http.delete(&path, &[], "users.delete").await
     }
 
     /// Obtém o status de um usuário.
@@ -120,9 +124,9 @@ impl UsersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn status(&self, user_id: u64) -> Result<UserStatus, GitLabError> {
+    pub async fn status(&self, user_id: u64) -> Result<UserStatus, GitLabError> {
         let path = format!("users/{}/status", user_id);
-        self.http.get(&path, &[], "users.status")
+        self.http.get(&path, &[], "users.status").await
     }
 
     /// Define o status do usuário autenticado.
@@ -137,7 +141,11 @@ impl UsersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn set_status(&self, emoji: Option<&str>, message: Option<&str>) -> Result<UserStatus, GitLabError> {
+    pub async fn set_status(
+        &self,
+        emoji: Option<&str>,
+        message: Option<&str>,
+    ) -> Result<UserStatus, GitLabError> {
         let mut body = serde_json::Map::new();
         if let Some(e) = emoji {
             body.insert("emoji".into(), serde_json::json!(e));
@@ -147,7 +155,15 @@ impl UsersResource {
         }
         // Some GitLab versions return the full UserStatus object,
         // others return a minimal response — handle both.
-        match self.http.put::<UserStatus, _>("user/status", &serde_json::Value::Object(body), "users.set_status") {
+        match self
+            .http
+            .put::<UserStatus, _>(
+                "user/status",
+                &serde_json::Value::Object(body),
+                "users.set_status",
+            )
+            .await
+        {
             Ok(status) => Ok(status),
             Err(e) => {
                 // If the request succeeded but parsing failed, return a best-effort status
@@ -175,9 +191,9 @@ impl UsersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn deactivate(&self, user_id: u64) -> Result<(), GitLabError> {
+    pub async fn deactivate(&self, user_id: u64) -> Result<(), GitLabError> {
         let path = format!("users/{}/deactivate", user_id);
-        self.http.post(&path, &serde_json::Value::Null, "users.deactivate")
+        self.http.post(&path, &serde_json::Value::Null, "users.deactivate").await
     }
 
     /// Reativa um usuário desativado.
@@ -191,9 +207,9 @@ impl UsersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn activate(&self, user_id: u64) -> Result<(), GitLabError> {
+    pub async fn activate(&self, user_id: u64) -> Result<(), GitLabError> {
         let path = format!("users/{}/activate", user_id);
-        self.http.post(&path, &serde_json::Value::Null, "users.activate")
+        self.http.post(&path, &serde_json::Value::Null, "users.activate").await
     }
 
     /// Bane um usuário.
@@ -207,9 +223,9 @@ impl UsersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn ban(&self, user_id: u64) -> Result<(), GitLabError> {
+    pub async fn ban(&self, user_id: u64) -> Result<(), GitLabError> {
         let path = format!("users/{}/ban", user_id);
-        self.http.post(&path, &serde_json::Value::Null, "users.ban")
+        self.http.post(&path, &serde_json::Value::Null, "users.ban").await
     }
 
     /// Remove o banimento de um usuário.
@@ -223,9 +239,9 @@ impl UsersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn unban(&self, user_id: u64) -> Result<(), GitLabError> {
+    pub async fn unban(&self, user_id: u64) -> Result<(), GitLabError> {
         let path = format!("users/{}/unban", user_id);
-        self.http.post(&path, &serde_json::Value::Null, "users.unban")
+        self.http.post(&path, &serde_json::Value::Null, "users.unban").await
     }
 
     /// Obtém as preferências do usuário autenticado.
@@ -236,8 +252,8 @@ impl UsersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn preferences(&self) -> Result<UserPreferences, GitLabError> {
-        self.http.get("user/preferences", &[], "users.preferences")
+    pub async fn preferences(&self) -> Result<UserPreferences, GitLabError> {
+        self.http.get("user/preferences", &[], "users.preferences").await
     }
 
     /// Define as preferências do usuário autenticado.
@@ -251,7 +267,10 @@ impl UsersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn set_preferences(&self, prefs: &serde_json::Value) -> Result<UserPreferences, GitLabError> {
-        self.http.put("user/preferences", &prefs, "users.set_preferences")
+    pub async fn set_preferences(
+        &self,
+        prefs: &serde_json::Value,
+    ) -> Result<UserPreferences, GitLabError> {
+        self.http.put("user/preferences", &prefs, "users.set_preferences").await
     }
 }

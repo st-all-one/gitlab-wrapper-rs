@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use crate::types::base::*;
 use crate::types::branch::BranchCommit;
+use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando uma release (versão).
 #[derive(Debug, Clone, Serialize, Deserialize)]

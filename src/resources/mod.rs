@@ -7,9 +7,18 @@
 //!
 //! Para usar um recurso, acesse-o através do `GitLabClient`:
 //!
-//! ```rust,ignore
+//! ```rust,no_run
+//! # use gitlab_wrapper::{GitLabConfig, GitLabClient};
+//! # let config = GitLabConfig {
+//! #     base_url: "https://gitlab.example.com".into(),
+//! #     token: Some("glpat-xxx".into()),
+//! #     ..Default::default()
+//! # };
+//! # tokio::runtime::Runtime::new().unwrap().block_on(async {
 //! let client = GitLabClient::new(config)?;
-//! let projects = client.projects().list(None)?;
+//! let _projects = client.projects.list(None).await?;
+//! # Ok::<(), gitlab_wrapper::GitLabError>(())
+//! # });
 //! ```
 
 mod branches;

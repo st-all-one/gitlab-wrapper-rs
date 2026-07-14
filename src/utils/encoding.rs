@@ -24,11 +24,8 @@ pub fn filter_to_query<T: serde::Serialize>(filter: Option<&T>) -> Vec<(String, 
         match val {
             serde_json::Value::Object(map) => {
                 for (k, v) in map {
-                    let new_prefix = if prefix.is_empty() {
-                        k.clone()
-                    } else {
-                        format!("{}[{}]", prefix, k)
-                    };
+                    let new_prefix =
+                        if prefix.is_empty() { k.clone() } else { format!("{}[{}]", prefix, k) };
                     inner(v, &new_prefix, query);
                 }
             }
@@ -57,4 +54,43 @@ pub fn filter_to_query<T: serde::Serialize>(filter: Option<&T>) -> Vec<(String, 
         }
     }
     query
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde::Serialize;
+
+    #[test]
+    fn test_encode_query_param_basic() {
+        assert_eq!(encode_query_param("hello"), "hello");
+        assert_eq!(encode_query_param("a b"), "a+b");
+    }
+
+    #[test]
+    fn test_encode_query_param_special_chars() {
+        assert_eq!(encode_query_param("a&b=c"), "a%26b%3Dc");
+        assert_eq!(encode_query_param("path/with/slashes"), "path%2Fwith%2Fslashes");
+    }
+
+    #[test]
+    fn test_filter_to_query_none() {
+        let result: Vec<(String, String)> = filter_to_query(None::<&serde_json::Value>);
+        assert!(result.is_empty());
+    }
+
+    #[derive(Serialize)]
+    struct TestFilter {
+        name: String,
+        active: bool,
+    }
+
+    #[test]
+    fn test_filter_to_query_simple() {
+        let filter = TestFilter { name: "test".into(), active: true };
+        let result = filter_to_query(Some(&filter));
+        assert_eq!(result.len(), 2);
+        assert!(result.contains(&("name".into(), "test".into())));
+        assert!(result.contains(&("active".into(), "true".into())));
+    }
 }

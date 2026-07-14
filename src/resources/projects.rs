@@ -1,8 +1,8 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use std::sync::Arc;
 use crate::types::*;
 use crate::utils::encoding::filter_to_query;
+use std::sync::Arc;
 
 /// Recurso de API para operações com projetos no GitLab.
 #[derive(Debug)]
@@ -27,9 +27,9 @@ impl ProjectsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list(&self, filter: Option<&ProjectFilter>) -> Result<Vec<Project>, GitLabError> {
+    pub async fn list(&self, filter: Option<&ProjectFilter>) -> Result<Vec<Project>, GitLabError> {
         let query = filter_to_query(filter);
-        self.http.get("projects", &query, "projects.list")
+        self.http.get("projects", &query, "projects.list").await
     }
 
     /// Lista todos os projetos (paginação automática).
@@ -43,9 +43,12 @@ impl ProjectsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_all(&self, filter: Option<&ProjectFilter>) -> Result<Vec<Project>, GitLabError> {
+    pub async fn list_all(
+        &self,
+        filter: Option<&ProjectFilter>,
+    ) -> Result<Vec<Project>, GitLabError> {
         let query = filter_to_query(filter);
-        self.http.paginate_all("projects", &query, "projects.list_all")
+        self.http.paginate_all("projects", &query, "projects.list_all").await
     }
 
     /// Obtém um projeto pelo ID.
@@ -59,9 +62,9 @@ impl ProjectsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get(&self, project_id: u64) -> Result<Project, GitLabError> {
+    pub async fn get(&self, project_id: u64) -> Result<Project, GitLabError> {
         let path = format!("projects/{}", project_id);
-        self.http.get(&path, &[], "projects.get")
+        self.http.get(&path, &[], "projects.get").await
     }
 
     /// Obtém um projeto pelo caminho URL-encoded.
@@ -75,10 +78,10 @@ impl ProjectsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get_by_path(&self, path: &str) -> Result<Project, GitLabError> {
+    pub async fn get_by_path(&self, path: &str) -> Result<Project, GitLabError> {
         let encoded = crate::utils::encoding::encode_query_param(path);
         let url = format!("projects/{}", encoded);
-        self.http.get(&url, &[], "projects.get_by_path")
+        self.http.get(&url, &[], "projects.get_by_path").await
     }
 
     /// Cria um novo projeto.
@@ -92,8 +95,8 @@ impl ProjectsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create(&self, payload: &CreateProjectPayload) -> Result<Project, GitLabError> {
-        self.http.post("projects", &payload, "projects.create")
+    pub async fn create(&self, payload: &CreateProjectPayload) -> Result<Project, GitLabError> {
+        self.http.post("projects", &payload, "projects.create").await
     }
 
     /// Atualiza um projeto existente.
@@ -108,9 +111,13 @@ impl ProjectsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update(&self, project_id: u64, payload: &UpdateProjectPayload) -> Result<Project, GitLabError> {
+    pub async fn update(
+        &self,
+        project_id: u64,
+        payload: &UpdateProjectPayload,
+    ) -> Result<Project, GitLabError> {
         let path = format!("projects/{}", project_id);
-        self.http.put(&path, &payload, "projects.update")
+        self.http.put(&path, &payload, "projects.update").await
     }
 
     /// Remove um projeto.
@@ -124,9 +131,9 @@ impl ProjectsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete(&self, project_id: u64) -> Result<(), GitLabError> {
+    pub async fn delete(&self, project_id: u64) -> Result<(), GitLabError> {
         let path = format!("projects/{}", project_id);
-        self.http.delete(&path, &[], "projects.delete")
+        self.http.delete(&path, &[], "projects.delete").await
     }
 
     /// Arquiva um projeto.
@@ -140,9 +147,9 @@ impl ProjectsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn archive(&self, project_id: u64) -> Result<Project, GitLabError> {
+    pub async fn archive(&self, project_id: u64) -> Result<Project, GitLabError> {
         let path = format!("projects/{}/archive", project_id);
-        self.http.post(&path, &serde_json::Value::Null, "projects.archive")
+        self.http.post(&path, &serde_json::Value::Null, "projects.archive").await
     }
 
     /// Desarquiva um projeto.
@@ -156,9 +163,9 @@ impl ProjectsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn unarchive(&self, project_id: u64) -> Result<Project, GitLabError> {
+    pub async fn unarchive(&self, project_id: u64) -> Result<Project, GitLabError> {
         let path = format!("projects/{}/unarchive", project_id);
-        self.http.post(&path, &serde_json::Value::Null, "projects.unarchive")
+        self.http.post(&path, &serde_json::Value::Null, "projects.unarchive").await
     }
 
     /// Cria um fork de um projeto.
@@ -173,9 +180,13 @@ impl ProjectsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn fork(&self, project_id: u64, _namespace: Option<&str>) -> Result<Project, GitLabError> {
+    pub async fn fork(
+        &self,
+        project_id: u64,
+        _namespace: Option<&str>,
+    ) -> Result<Project, GitLabError> {
         let path = format!("projects/{}/fork", project_id);
-        self.http.post(&path, &serde_json::Value::Null, "projects.fork")
+        self.http.post(&path, &serde_json::Value::Null, "projects.fork").await
     }
 
     /// Faz upload de avatar para um projeto.
@@ -189,8 +200,14 @@ impl ProjectsResource {
     ///
     /// ## Errors
     /// Retorna `GitLabError::Config` informando que multipart não é suportado.
-    pub fn upload_avatar(&self, _project_id: u64, _file_path: &str) -> Result<Project, GitLabError> {
-        Err(GitLabError::Config("Avatar upload requires multipart - not supported via blocking HTTP client".into()))
+    pub async fn upload_avatar(
+        &self,
+        _project_id: u64,
+        _file_path: &str,
+    ) -> Result<Project, GitLabError> {
+        Err(GitLabError::Config(
+            "Avatar upload requires multipart - not supported via the HTTP client".into(),
+        ))
     }
 
     /// Transfere um projeto para outro namespace.
@@ -205,9 +222,13 @@ impl ProjectsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn transfer(&self, project_id: u64, namespace_id: u64) -> Result<Project, GitLabError> {
+    pub async fn transfer(
+        &self,
+        project_id: u64,
+        namespace_id: u64,
+    ) -> Result<Project, GitLabError> {
         let path = format!("projects/{}/transfer", project_id);
         let body = serde_json::json!({ "namespace_id": namespace_id });
-        self.http.put(&path, &body, "projects.transfer")
+        self.http.put(&path, &body, "projects.transfer").await
     }
 }

@@ -1,7 +1,7 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use std::sync::Arc;
 use crate::types::*;
+use std::sync::Arc;
 
 /// Recurso de API para operações com membros no GitLab.
 #[derive(Debug)]
@@ -26,9 +26,9 @@ impl MembersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_project_members(&self, project_id: u64) -> Result<Vec<Member>, GitLabError> {
+    pub async fn list_project_members(&self, project_id: u64) -> Result<Vec<Member>, GitLabError> {
         let path = format!("projects/{}/members", project_id);
-        self.http.get(&path, &[], "members.list_project")
+        self.http.get(&path, &[], "members.list_project").await
     }
 
     /// Obtém um membro específico de um projeto.
@@ -43,9 +43,13 @@ impl MembersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get_project_member(&self, project_id: u64, user_id: u64) -> Result<Member, GitLabError> {
+    pub async fn get_project_member(
+        &self,
+        project_id: u64,
+        user_id: u64,
+    ) -> Result<Member, GitLabError> {
         let path = format!("projects/{}/members/{}", project_id, user_id);
-        self.http.get(&path, &[], "members.get_project")
+        self.http.get(&path, &[], "members.get_project").await
     }
 
     /// Adiciona um membro a um projeto.
@@ -60,9 +64,13 @@ impl MembersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn add_project_member(&self, project_id: u64, payload: &AddMemberPayload) -> Result<Member, GitLabError> {
+    pub async fn add_project_member(
+        &self,
+        project_id: u64,
+        payload: &AddMemberPayload,
+    ) -> Result<Member, GitLabError> {
         let path = format!("projects/{}/members", project_id);
-        self.http.post(&path, &payload, "members.add_project")
+        self.http.post(&path, &payload, "members.add_project").await
     }
 
     /// Atualiza um membro de um projeto.
@@ -78,9 +86,14 @@ impl MembersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update_project_member(&self, project_id: u64, user_id: u64, payload: &UpdateMemberPayload) -> Result<Member, GitLabError> {
+    pub async fn update_project_member(
+        &self,
+        project_id: u64,
+        user_id: u64,
+        payload: &UpdateMemberPayload,
+    ) -> Result<Member, GitLabError> {
         let path = format!("projects/{}/members/{}", project_id, user_id);
-        self.http.put(&path, &payload, "members.update_project")
+        self.http.put(&path, &payload, "members.update_project").await
     }
 
     /// Remove um membro de um projeto.
@@ -95,9 +108,13 @@ impl MembersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete_project_member(&self, project_id: u64, user_id: u64) -> Result<(), GitLabError> {
+    pub async fn delete_project_member(
+        &self,
+        project_id: u64,
+        user_id: u64,
+    ) -> Result<(), GitLabError> {
         let path = format!("projects/{}/members/{}", project_id, user_id);
-        self.http.delete(&path, &[], "members.delete_project")
+        self.http.delete(&path, &[], "members.delete_project").await
     }
 
     /// Lista membros de um projeto, incluindo membros herdados.
@@ -111,9 +128,12 @@ impl MembersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_project_inherited_members(&self, project_id: u64) -> Result<Vec<Member>, GitLabError> {
+    pub async fn list_project_inherited_members(
+        &self,
+        project_id: u64,
+    ) -> Result<Vec<Member>, GitLabError> {
         let path = format!("projects/{}/members/all", project_id);
-        self.http.get(&path, &[], "members.list_project_inherited")
+        self.http.get(&path, &[], "members.list_project_inherited").await
     }
 
     /// Lista membros de um grupo.
@@ -127,9 +147,9 @@ impl MembersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_group_members(&self, group_id: u64) -> Result<Vec<Member>, GitLabError> {
+    pub async fn list_group_members(&self, group_id: u64) -> Result<Vec<Member>, GitLabError> {
         let path = format!("groups/{}/members", group_id);
-        self.http.get(&path, &[], "members.list_group")
+        self.http.get(&path, &[], "members.list_group").await
     }
 
     /// Obtém um membro específico de um grupo.
@@ -144,9 +164,13 @@ impl MembersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get_group_member(&self, group_id: u64, user_id: u64) -> Result<Member, GitLabError> {
+    pub async fn get_group_member(
+        &self,
+        group_id: u64,
+        user_id: u64,
+    ) -> Result<Member, GitLabError> {
         let path = format!("groups/{}/members/{}", group_id, user_id);
-        self.http.get(&path, &[], "members.get_group")
+        self.http.get(&path, &[], "members.get_group").await
     }
 
     /// Adiciona um membro a um grupo.
@@ -161,9 +185,13 @@ impl MembersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn add_group_member(&self, group_id: u64, payload: &AddMemberPayload) -> Result<Member, GitLabError> {
+    pub async fn add_group_member(
+        &self,
+        group_id: u64,
+        payload: &AddMemberPayload,
+    ) -> Result<Member, GitLabError> {
         let path = format!("groups/{}/members", group_id);
-        self.http.post(&path, &payload, "members.add_group")
+        self.http.post(&path, &payload, "members.add_group").await
     }
 
     /// Atualiza um membro de um grupo.
@@ -179,9 +207,14 @@ impl MembersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update_group_member(&self, group_id: u64, user_id: u64, payload: &UpdateMemberPayload) -> Result<Member, GitLabError> {
+    pub async fn update_group_member(
+        &self,
+        group_id: u64,
+        user_id: u64,
+        payload: &UpdateMemberPayload,
+    ) -> Result<Member, GitLabError> {
         let path = format!("groups/{}/members/{}", group_id, user_id);
-        self.http.put(&path, &payload, "members.update_group")
+        self.http.put(&path, &payload, "members.update_group").await
     }
 
     /// Remove um membro de um grupo.
@@ -196,9 +229,13 @@ impl MembersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete_group_member(&self, group_id: u64, user_id: u64) -> Result<(), GitLabError> {
+    pub async fn delete_group_member(
+        &self,
+        group_id: u64,
+        user_id: u64,
+    ) -> Result<(), GitLabError> {
         let path = format!("groups/{}/members/{}", group_id, user_id);
-        self.http.delete(&path, &[], "members.delete_group")
+        self.http.delete(&path, &[], "members.delete_group").await
     }
 
     /// Lista membros de um grupo, incluindo membros herdados.
@@ -212,8 +249,11 @@ impl MembersResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_group_inherited_members(&self, group_id: u64) -> Result<Vec<Member>, GitLabError> {
+    pub async fn list_group_inherited_members(
+        &self,
+        group_id: u64,
+    ) -> Result<Vec<Member>, GitLabError> {
         let path = format!("groups/{}/members/all", group_id);
-        self.http.get(&path, &[], "members.list_group_inherited")
+        self.http.get(&path, &[], "members.list_group_inherited").await
     }
 }

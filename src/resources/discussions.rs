@@ -1,8 +1,8 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
+use crate::types::*;
 use crate::utils::encoding::encode_query_param;
 use std::sync::Arc;
-use crate::types::*;
 
 /// Recurso de API para operações com discussões no GitLab.
 #[derive(Debug)]
@@ -40,9 +40,13 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_issue_discussions(&self, project_id: u64, issue_iid: u32) -> Result<Vec<Discussion>, GitLabError> {
+    pub async fn list_issue_discussions(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+    ) -> Result<Vec<Discussion>, GitLabError> {
         let path = Self::base_issue(project_id, issue_iid);
-        self.http.get(&path, &[], "discussions.list_issue")
+        self.http.get(&path, &[], "discussions.list_issue").await
     }
 
     /// Cria uma discussão em uma issue.
@@ -58,9 +62,14 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create_issue_discussion(&self, project_id: u64, issue_iid: u32, body: &CreateDiscussionPayload) -> Result<Discussion, GitLabError> {
+    pub async fn create_issue_discussion(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+        body: &CreateDiscussionPayload,
+    ) -> Result<Discussion, GitLabError> {
         let path = Self::base_issue(project_id, issue_iid);
-        self.http.post(&path, &body, "discussions.create_issue")
+        self.http.post(&path, &body, "discussions.create_issue").await
     }
 
     /// Adiciona uma nota a uma discussão de issue.
@@ -77,9 +86,15 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn add_issue_discussion_note(&self, project_id: u64, issue_iid: u32, discussion_id: &str, note: &CreateNotePayload) -> Result<Note, GitLabError> {
+    pub async fn add_issue_discussion_note(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+        discussion_id: &str,
+        note: &CreateNotePayload,
+    ) -> Result<Note, GitLabError> {
         let path = format!("{}/{}/notes", Self::base_issue(project_id, issue_iid), discussion_id);
-        self.http.post(&path, &note, "discussions.add_issue_note")
+        self.http.post(&path, &note, "discussions.add_issue_note").await
     }
 
     /// Obtém uma discussão específica de uma issue.
@@ -95,9 +110,18 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get_issue_discussion(&self, project_id: u64, issue_iid: u32, discussion_id: &str) -> Result<Discussion, GitLabError> {
-        let path = format!("{}/{}", Self::base_issue(project_id, issue_iid), encode_query_param(discussion_id));
-        self.http.get(&path, &[], "discussions.get_issue")
+    pub async fn get_issue_discussion(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+        discussion_id: &str,
+    ) -> Result<Discussion, GitLabError> {
+        let path = format!(
+            "{}/{}",
+            Self::base_issue(project_id, issue_iid),
+            encode_query_param(discussion_id)
+        );
+        self.http.get(&path, &[], "discussions.get_issue").await
     }
 
     /// Atualiza uma nota de uma discussão de issue.
@@ -115,10 +139,22 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update_issue_discussion_note(&self, project_id: u64, issue_iid: u32, discussion_id: &str, note_id: u64, body: &str) -> Result<Note, GitLabError> {
-        let path = format!("{}/{}/notes/{}", Self::base_issue(project_id, issue_iid), encode_query_param(discussion_id), note_id);
+    pub async fn update_issue_discussion_note(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+        discussion_id: &str,
+        note_id: u64,
+        body: &str,
+    ) -> Result<Note, GitLabError> {
+        let path = format!(
+            "{}/{}/notes/{}",
+            Self::base_issue(project_id, issue_iid),
+            encode_query_param(discussion_id),
+            note_id
+        );
         let payload = serde_json::json!({ "body": body });
-        self.http.put(&path, &payload, "discussions.update_issue_note")
+        self.http.put(&path, &payload, "discussions.update_issue_note").await
     }
 
     /// Remove uma nota de uma discussão de issue.
@@ -135,9 +171,20 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete_issue_discussion_note(&self, project_id: u64, issue_iid: u32, discussion_id: &str, note_id: u64) -> Result<(), GitLabError> {
-        let path = format!("{}/{}/notes/{}", Self::base_issue(project_id, issue_iid), encode_query_param(discussion_id), note_id);
-        self.http.delete(&path, &[], "discussions.delete_issue_note")
+    pub async fn delete_issue_discussion_note(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+        discussion_id: &str,
+        note_id: u64,
+    ) -> Result<(), GitLabError> {
+        let path = format!(
+            "{}/{}/notes/{}",
+            Self::base_issue(project_id, issue_iid),
+            encode_query_param(discussion_id),
+            note_id
+        );
+        self.http.delete(&path, &[], "discussions.delete_issue_note").await
     }
 
     /// Resolve ou não resolve uma discussão de issue.
@@ -154,10 +201,20 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn resolve_issue_discussion(&self, project_id: u64, issue_iid: u32, discussion_id: &str, resolved: bool) -> Result<Discussion, GitLabError> {
-        let path = format!("{}/{}", Self::base_issue(project_id, issue_iid), encode_query_param(discussion_id));
+    pub async fn resolve_issue_discussion(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+        discussion_id: &str,
+        resolved: bool,
+    ) -> Result<Discussion, GitLabError> {
+        let path = format!(
+            "{}/{}",
+            Self::base_issue(project_id, issue_iid),
+            encode_query_param(discussion_id)
+        );
         let payload = serde_json::json!({ "resolved": resolved });
-        self.http.put(&path, &payload, "discussions.resolve_issue")
+        self.http.put(&path, &payload, "discussions.resolve_issue").await
     }
 
     /// Lista discussões de um merge request.
@@ -172,9 +229,13 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_mr_discussions(&self, project_id: u64, mr_iid: u32) -> Result<Vec<Discussion>, GitLabError> {
+    pub async fn list_mr_discussions(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+    ) -> Result<Vec<Discussion>, GitLabError> {
         let path = Self::base_mr(project_id, mr_iid);
-        self.http.get(&path, &[], "discussions.list_mr")
+        self.http.get(&path, &[], "discussions.list_mr").await
     }
 
     /// Cria uma discussão em um merge request.
@@ -190,9 +251,14 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create_mr_discussion(&self, project_id: u64, mr_iid: u32, body: &CreateDiscussionPayload) -> Result<Discussion, GitLabError> {
+    pub async fn create_mr_discussion(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+        body: &CreateDiscussionPayload,
+    ) -> Result<Discussion, GitLabError> {
         let path = Self::base_mr(project_id, mr_iid);
-        self.http.post(&path, &body, "discussions.create_mr")
+        self.http.post(&path, &body, "discussions.create_mr").await
     }
 
     /// Adiciona uma nota a uma discussão de merge request.
@@ -209,9 +275,15 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn add_mr_discussion_note(&self, project_id: u64, mr_iid: u32, discussion_id: &str, note: &CreateNotePayload) -> Result<Note, GitLabError> {
+    pub async fn add_mr_discussion_note(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+        discussion_id: &str,
+        note: &CreateNotePayload,
+    ) -> Result<Note, GitLabError> {
         let path = format!("{}/{}/notes", Self::base_mr(project_id, mr_iid), discussion_id);
-        self.http.post(&path, &note, "discussions.add_mr_note")
+        self.http.post(&path, &note, "discussions.add_mr_note").await
     }
 
     /// Obtém uma discussão específica de um merge request.
@@ -227,9 +299,15 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get_mr_discussion(&self, project_id: u64, mr_iid: u32, discussion_id: &str) -> Result<Discussion, GitLabError> {
-        let path = format!("{}/{}", Self::base_mr(project_id, mr_iid), encode_query_param(discussion_id));
-        self.http.get(&path, &[], "discussions.get_mr")
+    pub async fn get_mr_discussion(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+        discussion_id: &str,
+    ) -> Result<Discussion, GitLabError> {
+        let path =
+            format!("{}/{}", Self::base_mr(project_id, mr_iid), encode_query_param(discussion_id));
+        self.http.get(&path, &[], "discussions.get_mr").await
     }
 
     /// Atualiza uma nota de uma discussão de merge request.
@@ -247,10 +325,22 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update_mr_discussion_note(&self, project_id: u64, mr_iid: u32, discussion_id: &str, note_id: u64, body: &str) -> Result<Note, GitLabError> {
-        let path = format!("{}/{}/notes/{}", Self::base_mr(project_id, mr_iid), encode_query_param(discussion_id), note_id);
+    pub async fn update_mr_discussion_note(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+        discussion_id: &str,
+        note_id: u64,
+        body: &str,
+    ) -> Result<Note, GitLabError> {
+        let path = format!(
+            "{}/{}/notes/{}",
+            Self::base_mr(project_id, mr_iid),
+            encode_query_param(discussion_id),
+            note_id
+        );
         let payload = serde_json::json!({ "body": body });
-        self.http.put(&path, &payload, "discussions.update_mr_note")
+        self.http.put(&path, &payload, "discussions.update_mr_note").await
     }
 
     /// Remove uma nota de uma discussão de merge request.
@@ -267,9 +357,20 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete_mr_discussion_note(&self, project_id: u64, mr_iid: u32, discussion_id: &str, note_id: u64) -> Result<(), GitLabError> {
-        let path = format!("{}/{}/notes/{}", Self::base_mr(project_id, mr_iid), encode_query_param(discussion_id), note_id);
-        self.http.delete(&path, &[], "discussions.delete_mr_note")
+    pub async fn delete_mr_discussion_note(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+        discussion_id: &str,
+        note_id: u64,
+    ) -> Result<(), GitLabError> {
+        let path = format!(
+            "{}/{}/notes/{}",
+            Self::base_mr(project_id, mr_iid),
+            encode_query_param(discussion_id),
+            note_id
+        );
+        self.http.delete(&path, &[], "discussions.delete_mr_note").await
     }
 
     /// Resolve ou não resolve uma discussão de merge request.
@@ -286,10 +387,17 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn resolve_mr_discussion(&self, project_id: u64, mr_iid: u32, discussion_id: &str, resolved: bool) -> Result<Discussion, GitLabError> {
-        let path = format!("{}/{}", Self::base_mr(project_id, mr_iid), encode_query_param(discussion_id));
+    pub async fn resolve_mr_discussion(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+        discussion_id: &str,
+        resolved: bool,
+    ) -> Result<Discussion, GitLabError> {
+        let path =
+            format!("{}/{}", Self::base_mr(project_id, mr_iid), encode_query_param(discussion_id));
         let payload = serde_json::json!({ "resolved": resolved });
-        self.http.put(&path, &payload, "discussions.resolve_mr")
+        self.http.put(&path, &payload, "discussions.resolve_mr").await
     }
 
     /// Lista discussões de um commit.
@@ -304,9 +412,13 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_commit_discussions(&self, project_id: u64, sha: &str) -> Result<Vec<Discussion>, GitLabError> {
+    pub async fn list_commit_discussions(
+        &self,
+        project_id: u64,
+        sha: &str,
+    ) -> Result<Vec<Discussion>, GitLabError> {
         let path = Self::base_commit(project_id, sha);
-        self.http.get(&path, &[], "discussions.list_commit")
+        self.http.get(&path, &[], "discussions.list_commit").await
     }
 
     /// Cria uma discussão em um commit.
@@ -322,9 +434,14 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create_commit_discussion(&self, project_id: u64, sha: &str, body: &CreateDiscussionPayload) -> Result<Discussion, GitLabError> {
+    pub async fn create_commit_discussion(
+        &self,
+        project_id: u64,
+        sha: &str,
+        body: &CreateDiscussionPayload,
+    ) -> Result<Discussion, GitLabError> {
         let path = Self::base_commit(project_id, sha);
-        self.http.post(&path, &body, "discussions.create_commit")
+        self.http.post(&path, &body, "discussions.create_commit").await
     }
 
     /// Adiciona uma nota a uma discussão de commit.
@@ -341,9 +458,15 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn add_commit_discussion_note(&self, project_id: u64, sha: &str, discussion_id: &str, note: &CreateNotePayload) -> Result<Note, GitLabError> {
+    pub async fn add_commit_discussion_note(
+        &self,
+        project_id: u64,
+        sha: &str,
+        discussion_id: &str,
+        note: &CreateNotePayload,
+    ) -> Result<Note, GitLabError> {
         let path = format!("{}/{}/notes", Self::base_commit(project_id, sha), discussion_id);
-        self.http.post(&path, &note, "discussions.add_commit_note")
+        self.http.post(&path, &note, "discussions.add_commit_note").await
     }
 
     /// Obtém uma discussão específica de um commit.
@@ -359,9 +482,15 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get_commit_discussion(&self, project_id: u64, sha: &str, discussion_id: &str) -> Result<Discussion, GitLabError> {
-        let path = format!("{}/{}", Self::base_commit(project_id, sha), encode_query_param(discussion_id));
-        self.http.get(&path, &[], "discussions.get_commit")
+    pub async fn get_commit_discussion(
+        &self,
+        project_id: u64,
+        sha: &str,
+        discussion_id: &str,
+    ) -> Result<Discussion, GitLabError> {
+        let path =
+            format!("{}/{}", Self::base_commit(project_id, sha), encode_query_param(discussion_id));
+        self.http.get(&path, &[], "discussions.get_commit").await
     }
 
     /// Atualiza uma nota de uma discussão de commit.
@@ -379,10 +508,22 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update_commit_discussion_note(&self, project_id: u64, sha: &str, discussion_id: &str, note_id: u64, body: &str) -> Result<Note, GitLabError> {
-        let path = format!("{}/{}/notes/{}", Self::base_commit(project_id, sha), encode_query_param(discussion_id), note_id);
+    pub async fn update_commit_discussion_note(
+        &self,
+        project_id: u64,
+        sha: &str,
+        discussion_id: &str,
+        note_id: u64,
+        body: &str,
+    ) -> Result<Note, GitLabError> {
+        let path = format!(
+            "{}/{}/notes/{}",
+            Self::base_commit(project_id, sha),
+            encode_query_param(discussion_id),
+            note_id
+        );
         let payload = serde_json::json!({ "body": body });
-        self.http.put(&path, &payload, "discussions.update_commit_note")
+        self.http.put(&path, &payload, "discussions.update_commit_note").await
     }
 
     /// Remove uma nota de uma discussão de commit.
@@ -399,9 +540,20 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete_commit_discussion_note(&self, project_id: u64, sha: &str, discussion_id: &str, note_id: u64) -> Result<(), GitLabError> {
-        let path = format!("{}/{}/notes/{}", Self::base_commit(project_id, sha), encode_query_param(discussion_id), note_id);
-        self.http.delete(&path, &[], "discussions.delete_commit_note")
+    pub async fn delete_commit_discussion_note(
+        &self,
+        project_id: u64,
+        sha: &str,
+        discussion_id: &str,
+        note_id: u64,
+    ) -> Result<(), GitLabError> {
+        let path = format!(
+            "{}/{}/notes/{}",
+            Self::base_commit(project_id, sha),
+            encode_query_param(discussion_id),
+            note_id
+        );
+        self.http.delete(&path, &[], "discussions.delete_commit_note").await
     }
 
     /// Resolve ou não resolve uma discussão de commit.
@@ -418,9 +570,16 @@ impl DiscussionsResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn resolve_commit_discussion(&self, project_id: u64, sha: &str, discussion_id: &str, resolved: bool) -> Result<Discussion, GitLabError> {
-        let path = format!("{}/{}", Self::base_commit(project_id, sha), encode_query_param(discussion_id));
+    pub async fn resolve_commit_discussion(
+        &self,
+        project_id: u64,
+        sha: &str,
+        discussion_id: &str,
+        resolved: bool,
+    ) -> Result<Discussion, GitLabError> {
+        let path =
+            format!("{}/{}", Self::base_commit(project_id, sha), encode_query_param(discussion_id));
         let payload = serde_json::json!({ "resolved": resolved });
-        self.http.put(&path, &payload, "discussions.resolve_commit")
+        self.http.put(&path, &payload, "discussions.resolve_commit").await
     }
 }

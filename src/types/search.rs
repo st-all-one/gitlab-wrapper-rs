@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::types::base::GitLabId;
+use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando um item de resultado de busca.
 #[derive(Debug, Clone, Serialize, Deserialize)]

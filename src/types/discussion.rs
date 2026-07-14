@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use crate::types::base::*;
 use crate::types::note::Note;
+use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando uma discussão (thread de notas).
 #[derive(Debug, Clone, Serialize, Deserialize)]

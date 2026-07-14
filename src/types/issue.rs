@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::types::base::*;
+use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando uma issue.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -146,6 +146,27 @@ pub struct UpdateIssuePayload {
     /// Data de vencimento no formato ISO 8601.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub due_date: Option<String>,
+}
+
+/// Resposta mínima da API para operações que retornam dados parciais de uma issue
+/// (como subscribe, unsubscribe, time tracking).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct IssueMinimal {
+    /// ID único da issue (global).
+    pub id: Option<GitLabId>,
+    /// ID interno da issue (por projeto).
+    pub iid: Option<u32>,
+    /// ID do projeto ao qual a issue pertence.
+    pub project_id: Option<GitLabId>,
+    /// Título da issue.
+    pub title: Option<String>,
+    /// Estado da issue.
+    pub state: Option<String>,
+    /// Data de criação.
+    pub created_at: Option<String>,
+    /// Data da última atualização.
+    pub updated_at: Option<String>,
 }
 
 /// Filtros disponíveis para listar issues. Use `..Default::default()` para valores padrão.

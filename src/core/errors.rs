@@ -142,10 +142,15 @@ pub enum GitLabError {
     /// Erro retornado pela API do GitLab com categoria, status, detalhes e contexto.
     #[error("GitLab API error: {detail} (category: {category})")]
     Api {
+        /// Categoria semântica do erro.
         category: ErrorCategory,
+        /// Código de status HTTP retornado.
         status: u16,
+        /// Mensagem descritiva detalhada do erro.
         detail: String,
+        /// Identificador único (UUID v7) para correlação e rastreamento.
         instance: String,
+        /// Metadados contextuais adicionais sobre a falha.
         context: Box<ErrorContext>,
     },
 
@@ -156,14 +161,18 @@ pub enum GitLabError {
     /// Limite de taxa excedido — a requisição deve ser repetida após o tempo indicado.
     #[error("Rate limit exceeded, retry after {retry_after:?}")]
     RateLimited {
+        /// Tempo recomendado (em segundos) para aguardar antes de tentar novamente.
         retry_after: Option<u64>,
+        /// Metadados contextuais adicionais sobre a falha.
         context: Box<ErrorContext>,
     },
 
     /// Tempo limite da requisição excedido.
     #[error("Timeout after {duration:?}")]
     Timeout {
+        /// Duração do timeout configurado para a requisição.
         duration: std::time::Duration,
+        /// Metadados contextuais adicionais sobre a falha.
         context: Box<ErrorContext>,
     },
 
@@ -201,13 +210,7 @@ impl GitLabError {
         context: ErrorContext,
     ) -> Self {
         let instance = Uuid::new_v7(uuid::Timestamp::now(uuid::NoContext)).to_string();
-        Self::Api {
-            category,
-            status,
-            detail: detail.into(),
-            instance,
-            context: Box::new(context),
-        }
+        Self::Api { category, status, detail: detail.into(), instance, context: Box::new(context) }
     }
 
     /// Extrai a [`ErrorCategory`] do erro, se aplicável.
@@ -223,8 +226,7 @@ impl GitLabError {
             Self::Http(e) if e.is_timeout() => Some(ErrorCategory::Timeout),
             Self::Http(e) if e.is_connect() => Some(ErrorCategory::NetworkError),
             Self::Http(e) if e.is_status() => {
-                e.status()
-                    .and_then(|s| ErrorCategory::from_status(s.as_u16()))
+                e.status().and_then(|s| ErrorCategory::from_status(s.as_u16()))
             }
             _ => None,
         }
@@ -238,7 +240,7 @@ impl GitLabError {
 /// `GitLabError::Http`.
 impl From<reqwest::Error> for GitLabError {
     fn from(e: reqwest::Error) -> Self {
-        log::error!(target: "gitlab_wrapper::http", "HTTP error: {}", e);
+        tracing::error!(target: "gitlab_wrapper::http", "HTTP error: {}", e);
         if e.is_timeout() {
             Self::Timeout {
                 duration: std::time::Duration::from_secs(30),
@@ -247,5 +249,84 @@ impl From<reqwest::Error> for GitLabError {
         } else {
             Self::Http(e)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_error_category_from_status() {
+        assert_eq!(ErrorCategory::from_status(304), Some(ErrorCategory::NotModified));
+        assert_eq!(ErrorCategory::from_status(401), Some(ErrorCategory::AuthenticationFailed));
+        assert_eq!(ErrorCategory::from_status(404), Some(ErrorCategory::ResourceNotFound));
+        assert_eq!(ErrorCategory::from_status(429), Some(ErrorCategory::RateLimited));
+        assert_eq!(ErrorCategory::from_status(200), None);
+    }
+
+    #[test]
+    fn test_error_category_http_status_roundtrip() {
+        for cat in &[
+            ErrorCategory::AuthenticationFailed,
+            ErrorCategory::ResourceNotFound,
+            ErrorCategory::RateLimited,
+            ErrorCategory::Timeout,
+        ] {
+            let status = cat.http_status();
+            let back = ErrorCategory::from_status(status);
+            assert_eq!(back, Some(*cat), "roundtrip failed for {cat}");
+        }
+    }
+
+    #[test]
+    fn test_error_category_display() {
+        assert_eq!(ErrorCategory::AuthenticationFailed.to_string(), "authentication-failed");
+        assert_eq!(ErrorCategory::ResourceNotFound.to_string(), "resource-not-found");
+    }
+
+    #[test]
+    fn test_api_error_creation() {
+        let err = GitLabError::api(
+            ErrorCategory::ResourceNotFound,
+            404,
+            "test error",
+            ErrorContext {
+                operation: Some("test.op".into()),
+                http_status: Some(404),
+                ..Default::default()
+            },
+        );
+        match err {
+            GitLabError::Api { category, status, detail, .. } => {
+                assert_eq!(category, ErrorCategory::ResourceNotFound);
+                assert_eq!(status, 404);
+                assert_eq!(detail, "test error");
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn test_api_error_has_instance_id() {
+        let err =
+            GitLabError::api(ErrorCategory::InternalError, 500, "fail", ErrorContext::default());
+        match err {
+            GitLabError::Api { instance, .. } => {
+                assert!(!instance.is_empty(), "instance UUID must not be empty");
+                assert!(instance.contains('-'), "instance must be UUID format");
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn test_category_extraction() {
+        let api_err =
+            GitLabError::api(ErrorCategory::RateLimited, 429, "too many", ErrorContext::default());
+        assert_eq!(api_err.category(), Some(ErrorCategory::RateLimited));
+
+        let config_err = GitLabError::Config("bad config".into());
+        assert_eq!(config_err.category(), None);
     }
 }

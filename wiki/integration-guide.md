@@ -12,7 +12,7 @@ Padrões, práticas recomendadas e patterns para integrar o `gitlab-wrapper-rs` 
 - [Dicas de Performance](#dicas-de-performance)
 - [Integração OAuth](#integração-oauth)
 - [Monitoramento de Erros com UUIDs](#monitoramento-de-erros-com-uuids)
-- [Uso com Tokio/Async](#uso-com-tokioasync)
+- [Uso com Tokio](#uso-com-tokio)
 
 ---
 
@@ -58,8 +58,8 @@ struct SyncResult {
 }
 
 fn sync_project(gl: &GitLabClient, project_id: u64) -> Result<SyncResult, GitLabError> {
-    let project = gl.projects.get(project_id)?;
-    let issues = gl.issues.list_for_project(project_id, None)?;
+    let project = gl.projects.get(project_id).await?;
+    let issues = gl.issues.list_for_project(project_id, None).await?;
     Ok(SyncResult { project, issues })
 }
 
@@ -75,7 +75,7 @@ use std::sync::Arc;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let gl = Arc::new(GitLabClient::new(GitLabConfig {
         base_url: "https://gitlab.com".into(),
-        token: Some(std::env::var("GITLAB_TOKEN")?),
+        token: Some(std::env::var("GITLAB_TOKEN").await?),
         ..Default::default()
     })?);
 
@@ -85,7 +85,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Thread: {} projetos", projects.len());
     });
 
-    let projects = gl.projects.list(None)?;
+    let projects = gl.projects.list(None).await?;
     println!("Main: {} projetos", projects.len());
     Ok(())
 }
@@ -168,7 +168,7 @@ impl ProjectCache {
 
     fn get(&mut self, gl: &GitLabClient, id: u64) -> Result<&Project, gitlab_wrapper::GitLabError> {
         if !self.cache.contains_key(&id) {
-            let project = gl.projects.get(id)?;
+            let project = gl.projects.get(id).await?;
             self.cache.insert(id, project);
         }
         Ok(self.cache.get(&id).unwrap()) // seguro: acabamos de inserir
@@ -191,7 +191,7 @@ impl<T> TimedCache<T> {
     fn new(ttl: Duration) -> Self { Self { data: HashMap::new(), ttl } }
 
     fn get(&mut self, id: u64) -> Option<&T> {
-        let (val, inserted_at) = self.data.get(&id)?;
+        let (val, inserted_at) = self.data.get(&id).await?;
         if inserted_at.elapsed() > self.ttl {
             self.data.remove(&id);
             return None;
@@ -211,10 +211,10 @@ Evite cachear listas paginadas inteiras. Cacheie itens individuais:
 
 ```rust
 // ✅ Bom: cacheia projetos individuais
-let project = gl.projects.get(42)?;
+let project = gl.projects.get(42).await?;
 
 // ❌ Ruim: listas inteiras ficam obsoletas rapidamente
-let all = gl.projects.list_all(None)?;
+let all = gl.projects.list_all(None).await?;
 ```
 
 ---
@@ -234,7 +234,7 @@ let issues = gl.issues.list_for_project(1, Some(&IssueFilter {
 }))?;
 
 // ❌ Ruim: baixa tudo e filtra em Rust
-let all = gl.issues.list_for_project(1, None)?;
+let all = gl.issues.list_for_project(1, None).await?;
 let bugs: Vec<_> = all.into_iter()
     .filter(|i| i.state.as_deref() == Some("opened"))
     .collect();
@@ -443,13 +443,16 @@ fn report_to_monitoring(err: &GitLabError) {
 
 ---
 
-## Uso com Tokio/Async
+## Uso com Tokio
 
-O wrapper é **síncrono (blocking)**. Para uso em runtime async como Tokio:
+O `gitlab-wrapper-rs` é nativamente **assíncrono (tokio)**. Todas as chamadas
+HTTP são `async fn` e funcionam diretamente em qualquer runtime tokio.
 
-### Opção 1: `spawn_blocking`
+### Exemplo Básico
 
 ```rust
+use gitlab_wrapper::{GitLabClient, GitLabConfig};
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let gl = GitLabClient::new(GitLabConfig {
@@ -458,41 +461,54 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ..Default::default()
     })?;
 
-    // Executa chamada blocking em thread separada
-    let projects = tokio::task::spawn_blocking(move || {
-        gl.projects.list(None)
-    })
-    .await??;
-
+    let projects = gl.projects.list(None).await?;
     println!("{} projetos", projects.len());
     Ok(())
 }
 ```
 
-### Opção 2: Pool de Threads Dedicado
+### Concorrência com `tokio::join!`
 
 ```rust
-use std::thread;
+use gitlab_wrapper::{GitLabClient, GitLabConfig};
 
-struct GitLabPool {
-    client: GitLabClient,
-}
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let gl = GitLabClient::new(/* ... */)?;
 
-impl GitLabPool {
-    fn new(config: GitLabConfig) -> Result<Self, GitLabError> {
-        Ok(Self { client: GitLabClient::new(config)? })
-    }
+    let (projects, users) = tokio::join!(
+        gl.projects.list(None),
+        gl.users.list(None),
+    );
 
-    fn spawn<F, T>(&self, f: F) -> thread::JoinHandle<Result<T, GitLabError>>
-    where
-        F: FnOnce(&GitLabClient) -> Result<T, GitLabError> + Send + 'static,
-        T: Send + 'static,
-    {
-        let gl = self.client.clone(); // Arc<HttpClient> é clonável
-        thread::spawn(move || f(&gl))
-    }
+    println!("{} projetos, {} usuários", projects?.len(), users?.len());
+    Ok(())
 }
 ```
 
-> **💡 Nota:** O `GitLabClient` usa `Arc<HttpClient>` internamente, portanto é barato de clonar.
-> Cada chamada HTTP bloqueia a thread atual, mas o rate limiting é compartilhado via `Mutex`.
+### Integração com Axum
+
+```rust
+use axum::{Json, extract::State, routing::get, Router};
+use gitlab_wrapper::{GitLabClient, Project};
+use std::sync::Arc;
+
+async fn list_projects(
+    State(client): State<Arc<GitLabClient>>,
+) -> Json<Vec<Project>> {
+    let projects = client.projects.list(None).await.unwrap();
+    Json(projects)
+}
+
+#[tokio::main]
+async fn main() {
+    let client = Arc::new(GitLabClient::new(/* ... */).unwrap());
+    let app = Router::new()
+        .route("/projects", get(list_projects))
+        .with_state(client);
+    // ...
+}
+```
+
+> **💡 Nota:** O `GitLabClient` implementa `Clone` (usa `Arc<HttpClient>` internamente),
+> portanto é barato de clonar e pode ser compartilhado entre tasks e threads.

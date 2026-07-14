@@ -1,74 +1,47 @@
-use std::collections::VecDeque;
-use std::time::{Duration, Instant};
+//! Limitador de taxa assíncrono baseado em `tokio::sync::Semaphore`.
+//!
+//! Cada permissão adquirida é mantida por 1 segundo antes de ser devolvida
+//! ao semáforo, garantindo que no máximo `max_rps` requisições sejam
+//! disparadas por segundo.
 
-/// Limitador de taxa baseado no algoritmo de janela deslizante (*sliding window*).
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Semaphore;
+
+/// Limitador de taxa baseado em semáforo com liberação atrasada.
 ///
-/// Mantém um `VecDeque` de timestamps das requisições realizadas dentro
-/// da janela de tempo configurada. Quando o número máximo de requisições
-/// é atingido, a thread bloqueia (`sleep`) até que haja espaço na janela.
-///
-/// O algoritmo garante que não mais que `max_requests` requisições sejam
-/// feitas em qualquer intervalo de duração `window`.
-#[derive(Debug)]
-pub(crate) struct SlidingWindow {
-    max_requests: u32,
-    window: Duration,
-    timestamps: VecDeque<Instant>,
+/// Quando `acquire()` é chamado, uma permissão é removida do semáforo
+/// e automaticamente devolvida após 1 segundo. Isso cria um sliding window
+/// natural: o número de requisições em qualquer janela de 1 segundo nunca
+/// excede `max_permits`.
+#[derive(Debug, Clone)]
+pub(crate) struct RateLimiter {
+    semaphore: Arc<Semaphore>,
 }
 
-impl SlidingWindow {
-    /// Cria uma nova instância de `SlidingWindow`.
+impl RateLimiter {
+    /// Cria um novo limitador de taxa.
     ///
     /// ## Params
-    /// - `max_requests`: Número máximo de requisições permitidas na janela.
-    /// - `window`: Duração da janela de tempo (ex.: 1 segundo).
-    ///
-    /// ## Returns
-    /// `SlidingWindow` — nova instância com o `VecDeque` pré-alocado.
-    pub fn new(max_requests: u32, window: Duration) -> Self {
-        Self {
-            max_requests,
-            window,
-            timestamps: VecDeque::with_capacity(max_requests as usize),
-        }
+    /// - `max_rps`: Máximo de requisições por segundo.
+    pub fn new(max_rps: u32) -> Self {
+        Self { semaphore: Arc::new(Semaphore::new(max_rps as usize)) }
     }
 
     /// Adquire uma permissão para realizar uma requisição.
     ///
-    /// Remove timestamps expirados (fora da janela) e, se o limite foi
-    /// atingido, bloqueia a thread até que um slot seja liberado.
-    /// Ao final, registra o timestamp atual.
-    pub fn acquire(&mut self) {
-        let now = Instant::now();
-        let cutoff = now - self.window;
-
-        while let Some(&ts) = self.timestamps.front() {
-            if ts < cutoff {
-                self.timestamps.pop_front();
-            } else {
-                break;
-            }
-        }
-
-        if self.timestamps.len() >= self.max_requests as usize {
-            if let Some(&oldest) = self.timestamps.front() {
-                let wait = self.window.saturating_sub(now - oldest);
-                if !wait.is_zero() {
-                    log::debug!(target: "gitlab_wrapper::rate_limiter", "Rate limit reached, waiting {wait:?}");
-                    std::thread::sleep(wait);
-                    let now = Instant::now();
-                    let cutoff = now - self.window;
-                    while let Some(&ts) = self.timestamps.front() {
-                        if ts < cutoff {
-                            self.timestamps.pop_front();
-                        } else {
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        self.timestamps.push_back(Instant::now());
+    /// Bloqueia assincronamente até que uma permissão esteja disponível.
+    /// A permissão é automaticamente devolvida após 1 segundo via task
+    /// background.
+    pub async fn acquire(&self) {
+        let permit = Arc::clone(&self.semaphore)
+            .acquire_owned()
+            .await
+            .expect("rate limiter semaphore closed");
+        // Devolve a permissão após 1 segundo, liberando espaço na janela
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            drop(permit);
+        });
     }
 }

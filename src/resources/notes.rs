@@ -1,7 +1,7 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use std::sync::Arc;
 use crate::types::*;
+use std::sync::Arc;
 
 /// Recurso de API para operações com notas no GitLab.
 #[derive(Debug)]
@@ -47,9 +47,13 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_issue_notes(&self, project_id: u64, issue_iid: u32) -> Result<Vec<Note>, GitLabError> {
+    pub async fn list_issue_notes(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+    ) -> Result<Vec<Note>, GitLabError> {
         let path = Self::base_issue(project_id, issue_iid);
-        self.http.get(&path, &[], "notes.list_issue")
+        self.http.get(&path, &[], "notes.list_issue").await
     }
 
     /// Cria uma nota em uma issue.
@@ -65,9 +69,14 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create_issue_note(&self, project_id: u64, issue_iid: u32, payload: &CreateNotePayload) -> Result<Note, GitLabError> {
+    pub async fn create_issue_note(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+        payload: &CreateNotePayload,
+    ) -> Result<Note, GitLabError> {
         let path = Self::base_issue(project_id, issue_iid);
-        self.http.post(&path, &payload, "notes.create_issue")
+        self.http.post(&path, &payload, "notes.create_issue").await
     }
 
     /// Obtém uma nota específica de uma issue.
@@ -83,9 +92,14 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get_issue_note(&self, project_id: u64, issue_iid: u32, note_id: u64) -> Result<Note, GitLabError> {
+    pub async fn get_issue_note(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+        note_id: u64,
+    ) -> Result<Note, GitLabError> {
         let path = format!("{}/{}", Self::base_issue(project_id, issue_iid), note_id);
-        self.http.get(&path, &[], "notes.get_issue")
+        self.http.get(&path, &[], "notes.get_issue").await
     }
 
     /// Atualiza uma nota de uma issue.
@@ -102,9 +116,15 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update_issue_note(&self, project_id: u64, issue_iid: u32, note_id: u64, payload: &UpdateNotePayload) -> Result<Note, GitLabError> {
+    pub async fn update_issue_note(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+        note_id: u64,
+        payload: &UpdateNotePayload,
+    ) -> Result<Note, GitLabError> {
         let path = format!("{}/{}", Self::base_issue(project_id, issue_iid), note_id);
-        self.http.put(&path, &payload, "notes.update_issue")
+        self.http.put(&path, &payload, "notes.update_issue").await
     }
 
     /// Remove uma nota de uma issue.
@@ -120,9 +140,14 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete_issue_note(&self, project_id: u64, issue_iid: u32, note_id: u64) -> Result<(), GitLabError> {
+    pub async fn delete_issue_note(
+        &self,
+        project_id: u64,
+        issue_iid: u32,
+        note_id: u64,
+    ) -> Result<(), GitLabError> {
         let path = format!("{}/{}", Self::base_issue(project_id, issue_iid), note_id);
-        self.http.delete(&path, &[], "notes.delete_issue")
+        self.http.delete(&path, &[], "notes.delete_issue").await
     }
 
     /// Lista notas de um merge request.
@@ -137,9 +162,13 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_mr_notes(&self, project_id: u64, mr_iid: u32) -> Result<Vec<Note>, GitLabError> {
+    pub async fn list_mr_notes(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+    ) -> Result<Vec<Note>, GitLabError> {
         let path = Self::base_mr(project_id, mr_iid);
-        self.http.get(&path, &[], "notes.list_mr")
+        self.http.get(&path, &[], "notes.list_mr").await
     }
 
     /// Cria uma nota em um merge request.
@@ -155,9 +184,14 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create_mr_note(&self, project_id: u64, mr_iid: u32, payload: &CreateNotePayload) -> Result<Note, GitLabError> {
+    pub async fn create_mr_note(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+        payload: &CreateNotePayload,
+    ) -> Result<Note, GitLabError> {
         let path = Self::base_mr(project_id, mr_iid);
-        self.http.post(&path, &payload, "notes.create_mr")
+        self.http.post(&path, &payload, "notes.create_mr").await
     }
 
     /// Obtém uma nota específica de um merge request.
@@ -173,9 +207,14 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get_mr_note(&self, project_id: u64, mr_iid: u32, note_id: u64) -> Result<Note, GitLabError> {
+    pub async fn get_mr_note(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+        note_id: u64,
+    ) -> Result<Note, GitLabError> {
         let path = format!("{}/{}", Self::base_mr(project_id, mr_iid), note_id);
-        self.http.get(&path, &[], "notes.get_mr")
+        self.http.get(&path, &[], "notes.get_mr").await
     }
 
     /// Atualiza uma nota de um merge request.
@@ -192,9 +231,15 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update_mr_note(&self, project_id: u64, mr_iid: u32, note_id: u64, payload: &UpdateNotePayload) -> Result<Note, GitLabError> {
+    pub async fn update_mr_note(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+        note_id: u64,
+        payload: &UpdateNotePayload,
+    ) -> Result<Note, GitLabError> {
         let path = format!("{}/{}", Self::base_mr(project_id, mr_iid), note_id);
-        self.http.put(&path, &payload, "notes.update_mr")
+        self.http.put(&path, &payload, "notes.update_mr").await
     }
 
     /// Remove uma nota de um merge request.
@@ -210,9 +255,14 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete_mr_note(&self, project_id: u64, mr_iid: u32, note_id: u64) -> Result<(), GitLabError> {
+    pub async fn delete_mr_note(
+        &self,
+        project_id: u64,
+        mr_iid: u32,
+        note_id: u64,
+    ) -> Result<(), GitLabError> {
         let path = format!("{}/{}", Self::base_mr(project_id, mr_iid), note_id);
-        self.http.delete(&path, &[], "notes.delete_mr")
+        self.http.delete(&path, &[], "notes.delete_mr").await
     }
 
     /// Lista notas de um commit.
@@ -227,9 +277,13 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_commit_notes(&self, project_id: u64, sha: &str) -> Result<Vec<Note>, GitLabError> {
+    pub async fn list_commit_notes(
+        &self,
+        project_id: u64,
+        sha: &str,
+    ) -> Result<Vec<Note>, GitLabError> {
         let path = Self::base_commit(project_id, sha);
-        self.http.get(&path, &[], "notes.list_commit")
+        self.http.get(&path, &[], "notes.list_commit").await
     }
 
     /// Cria uma nota em um commit.
@@ -245,9 +299,14 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create_commit_note(&self, project_id: u64, sha: &str, payload: &CreateNotePayload) -> Result<Note, GitLabError> {
+    pub async fn create_commit_note(
+        &self,
+        project_id: u64,
+        sha: &str,
+        payload: &CreateNotePayload,
+    ) -> Result<Note, GitLabError> {
         let path = Self::base_commit(project_id, sha);
-        self.http.post(&path, &payload, "notes.create_commit")
+        self.http.post(&path, &payload, "notes.create_commit").await
     }
 
     /// Obtém uma nota específica de um commit.
@@ -263,9 +322,14 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get_commit_note(&self, project_id: u64, sha: &str, note_id: u64) -> Result<Note, GitLabError> {
+    pub async fn get_commit_note(
+        &self,
+        project_id: u64,
+        sha: &str,
+        note_id: u64,
+    ) -> Result<Note, GitLabError> {
         let path = format!("{}/{}", Self::base_commit(project_id, sha), note_id);
-        self.http.get(&path, &[], "notes.get_commit")
+        self.http.get(&path, &[], "notes.get_commit").await
     }
 
     /// Atualiza uma nota de um commit.
@@ -282,9 +346,15 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update_commit_note(&self, project_id: u64, sha: &str, note_id: u64, payload: &UpdateNotePayload) -> Result<Note, GitLabError> {
+    pub async fn update_commit_note(
+        &self,
+        project_id: u64,
+        sha: &str,
+        note_id: u64,
+        payload: &UpdateNotePayload,
+    ) -> Result<Note, GitLabError> {
         let path = format!("{}/{}", Self::base_commit(project_id, sha), note_id);
-        self.http.put(&path, &payload, "notes.update_commit")
+        self.http.put(&path, &payload, "notes.update_commit").await
     }
 
     /// Remove uma nota de um commit.
@@ -300,9 +370,14 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete_commit_note(&self, project_id: u64, sha: &str, note_id: u64) -> Result<(), GitLabError> {
+    pub async fn delete_commit_note(
+        &self,
+        project_id: u64,
+        sha: &str,
+        note_id: u64,
+    ) -> Result<(), GitLabError> {
         let path = format!("{}/{}", Self::base_commit(project_id, sha), note_id);
-        self.http.delete(&path, &[], "notes.delete_commit")
+        self.http.delete(&path, &[], "notes.delete_commit").await
     }
 
     /// Lista notas de um snippet.
@@ -317,9 +392,13 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_snippet_notes(&self, project_id: u64, snippet_id: u64) -> Result<Vec<Note>, GitLabError> {
+    pub async fn list_snippet_notes(
+        &self,
+        project_id: u64,
+        snippet_id: u64,
+    ) -> Result<Vec<Note>, GitLabError> {
         let path = Self::base_snippet(project_id, snippet_id);
-        self.http.get(&path, &[], "notes.list_snippet")
+        self.http.get(&path, &[], "notes.list_snippet").await
     }
 
     /// Cria uma nota em um snippet.
@@ -335,9 +414,14 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create_snippet_note(&self, project_id: u64, snippet_id: u64, payload: &CreateNotePayload) -> Result<Note, GitLabError> {
+    pub async fn create_snippet_note(
+        &self,
+        project_id: u64,
+        snippet_id: u64,
+        payload: &CreateNotePayload,
+    ) -> Result<Note, GitLabError> {
         let path = Self::base_snippet(project_id, snippet_id);
-        self.http.post(&path, &payload, "notes.create_snippet")
+        self.http.post(&path, &payload, "notes.create_snippet").await
     }
 
     /// Obtém uma nota específica de um snippet.
@@ -353,9 +437,14 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get_snippet_note(&self, project_id: u64, snippet_id: u64, note_id: u64) -> Result<Note, GitLabError> {
+    pub async fn get_snippet_note(
+        &self,
+        project_id: u64,
+        snippet_id: u64,
+        note_id: u64,
+    ) -> Result<Note, GitLabError> {
         let path = format!("{}/{}", Self::base_snippet(project_id, snippet_id), note_id);
-        self.http.get(&path, &[], "notes.get_snippet")
+        self.http.get(&path, &[], "notes.get_snippet").await
     }
 
     /// Atualiza uma nota de um snippet.
@@ -372,9 +461,15 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update_snippet_note(&self, project_id: u64, snippet_id: u64, note_id: u64, payload: &UpdateNotePayload) -> Result<Note, GitLabError> {
+    pub async fn update_snippet_note(
+        &self,
+        project_id: u64,
+        snippet_id: u64,
+        note_id: u64,
+        payload: &UpdateNotePayload,
+    ) -> Result<Note, GitLabError> {
         let path = format!("{}/{}", Self::base_snippet(project_id, snippet_id), note_id);
-        self.http.put(&path, &payload, "notes.update_snippet")
+        self.http.put(&path, &payload, "notes.update_snippet").await
     }
 
     /// Remove uma nota de um snippet.
@@ -390,9 +485,14 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete_snippet_note(&self, project_id: u64, snippet_id: u64, note_id: u64) -> Result<(), GitLabError> {
+    pub async fn delete_snippet_note(
+        &self,
+        project_id: u64,
+        snippet_id: u64,
+        note_id: u64,
+    ) -> Result<(), GitLabError> {
         let path = format!("{}/{}", Self::base_snippet(project_id, snippet_id), note_id);
-        self.http.delete(&path, &[], "notes.delete_snippet")
+        self.http.delete(&path, &[], "notes.delete_snippet").await
     }
 
     // -- Wiki notes --
@@ -409,9 +509,13 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list_wiki_notes(&self, project_id: u64, slug: &str) -> Result<Vec<Note>, GitLabError> {
+    pub async fn list_wiki_notes(
+        &self,
+        project_id: u64,
+        slug: &str,
+    ) -> Result<Vec<Note>, GitLabError> {
         let path = Self::base_wiki(project_id, slug);
-        self.http.get(&path, &[], "notes.list_wiki")
+        self.http.get(&path, &[], "notes.list_wiki").await
     }
 
     /// Obtém uma nota específica de uma wiki.
@@ -427,9 +531,14 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get_wiki_note(&self, project_id: u64, slug: &str, note_id: u64) -> Result<Note, GitLabError> {
+    pub async fn get_wiki_note(
+        &self,
+        project_id: u64,
+        slug: &str,
+        note_id: u64,
+    ) -> Result<Note, GitLabError> {
         let path = format!("{}/{}", Self::base_wiki(project_id, slug), note_id);
-        self.http.get(&path, &[], "notes.get_wiki")
+        self.http.get(&path, &[], "notes.get_wiki").await
     }
 
     /// Cria uma nota em uma página wiki.
@@ -445,9 +554,14 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create_wiki_note(&self, project_id: u64, slug: &str, payload: &CreateNotePayload) -> Result<Note, GitLabError> {
+    pub async fn create_wiki_note(
+        &self,
+        project_id: u64,
+        slug: &str,
+        payload: &CreateNotePayload,
+    ) -> Result<Note, GitLabError> {
         let path = Self::base_wiki(project_id, slug);
-        self.http.post(&path, &payload, "notes.create_wiki")
+        self.http.post(&path, &payload, "notes.create_wiki").await
     }
 
     /// Atualiza uma nota de uma página wiki.
@@ -464,9 +578,15 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update_wiki_note(&self, project_id: u64, slug: &str, note_id: u64, payload: &UpdateNotePayload) -> Result<Note, GitLabError> {
+    pub async fn update_wiki_note(
+        &self,
+        project_id: u64,
+        slug: &str,
+        note_id: u64,
+        payload: &UpdateNotePayload,
+    ) -> Result<Note, GitLabError> {
         let path = format!("{}/{}", Self::base_wiki(project_id, slug), note_id);
-        self.http.put(&path, &payload, "notes.update_wiki")
+        self.http.put(&path, &payload, "notes.update_wiki").await
     }
 
     /// Remove uma nota de uma página wiki.
@@ -482,8 +602,13 @@ impl NotesResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete_wiki_note(&self, project_id: u64, slug: &str, note_id: u64) -> Result<(), GitLabError> {
+    pub async fn delete_wiki_note(
+        &self,
+        project_id: u64,
+        slug: &str,
+        note_id: u64,
+    ) -> Result<(), GitLabError> {
         let path = format!("{}/{}", Self::base_wiki(project_id, slug), note_id);
-        self.http.delete(&path, &[], "notes.delete_wiki")
+        self.http.delete(&path, &[], "notes.delete_wiki").await
     }
 }

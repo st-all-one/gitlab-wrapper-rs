@@ -4,4 +4,5 @@
 //! como codificação percentual de parâmetros de consulta (`encoding`)
 //! e conversão de filtros para pares chave-valor.
 
+/// Codificação percentual e conversão de filtros para query string.
 pub mod encoding;

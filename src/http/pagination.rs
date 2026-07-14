@@ -1,10 +1,10 @@
-use crate::core::errors::GitLabError;
+use std::future::Future;
+use std::pin::Pin;
+
 use crate::core::constants::DEFAULT_PER_PAGE;
+use crate::core::errors::GitLabError;
 
 /// Informações de paginação extraídas dos cabeçalhos HTTP da resposta.
-///
-/// Contém campos opcionais para página atual, total de itens, total de páginas,
-/// próxima página, página anterior e cursor da próxima página (para keyset pagination).
 #[derive(Debug, Clone, Default)]
 #[non_exhaustive]
 pub struct PaginationInfo {
@@ -25,30 +25,14 @@ pub struct PaginationInfo {
 }
 
 /// Parseia os cabeçalhos de paginação retornados pela API do GitLab.
-///
-/// Extrai os valores dos cabeçalhos `x-page`, `x-per-page`, `x-total`,
-/// `x-total-pages`, `x-next-page`, `x-prev-page` e `x-next-cursor`.
-///
-/// ## Params
-/// - `headers`: Cabeçalhos HTTP da resposta.
-///
-/// ## Returns
-/// `PaginationInfo` — estrutura com os campos preenchidos quando os respectivos
-/// cabeçalhos estão presentes.
 pub(crate) fn parse_pagination_headers(headers: &reqwest::header::HeaderMap) -> PaginationInfo {
     PaginationInfo {
-        page: headers
-            .get("x-page")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.parse().ok()),
+        page: headers.get("x-page").and_then(|v| v.to_str().ok()).and_then(|v| v.parse().ok()),
         per_page: headers
             .get("x-per-page")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.parse().ok()),
-        total: headers
-            .get("x-total")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.parse().ok()),
+        total: headers.get("x-total").and_then(|v| v.to_str().ok()).and_then(|v| v.parse().ok()),
         total_pages: headers
             .get("x-total-pages")
             .and_then(|v| v.to_str().ok())
@@ -69,16 +53,6 @@ pub(crate) fn parse_pagination_headers(headers: &reqwest::header::HeaderMap) -> 
 }
 
 /// Extrai mensagens de erro do corpo de uma resposta JSON da API do GitLab.
-///
-/// Procura pelos campos `message` e `error` no JSON e coleta todas as strings
-/// encontradas em uma lista.
-///
-/// ## Params
-/// - `body`: Corpo da resposta como string.
-///
-/// ## Returns
-/// `Option<Vec<String>>` — `Some` com a lista de mensagens se houver,
-/// `None` se nenhuma mensagem for encontrada.
 pub(crate) fn extract_error_messages(body: &str) -> Option<Vec<String>> {
     let mut messages = Vec::new();
     if let Ok(val) = serde_json::from_str::<serde_json::Value>(body) {
@@ -120,13 +94,6 @@ pub(crate) fn extract_error_messages(body: &str) -> Option<Vec<String>> {
 }
 
 /// Extrai o valor de `retry_after` do corpo de uma resposta de rate limit (HTTP 429).
-///
-/// ## Params
-/// - `body`: Corpo da resposta como string.
-///
-/// ## Returns
-/// `Option<u64>` — número de segundos a aguardar antes de tentar novamente,
-/// ou `None` se o campo não estiver presente.
 pub(crate) fn extract_retry_after(body: &str) -> Option<u64> {
     if let Ok(val) = serde_json::from_str::<serde_json::Value>(body) {
         if let Some(retry_after) = val.get("retry_after").and_then(|v| v.as_u64()) {
@@ -138,31 +105,24 @@ pub(crate) fn extract_retry_after(body: &str) -> Option<u64> {
 
 /// Auto-pagina todas as páginas de um endpoint com paginação baseada em número de página.
 ///
-/// Itera sobre as páginas chamando `fetch_page` repetidamente, incrementando o número
-/// da página até que uma página retorne menos itens que `DEFAULT_PER_PAGE` ou
-/// não haja mais próxima página (`next_page`).
-///
-/// ## Params
-/// - `fetch_page`: Função que recebe o número da página e retorna os itens e `PaginationInfo`.
-/// - `_operation`: Identificador textual da operação (para logging).
-///
-/// ## Returns
-/// `Result<Vec<T>, GitLabError>` — lista consolidada de todos os itens de todas as páginas.
-///
-/// ## Errors
-/// Retorna `GitLabError` se alguma chamada a `fetch_page` falhar.
-pub(crate) fn paginate_all<T: serde::de::DeserializeOwned, F>(
+/// Itera sobre as páginas chamando `fetch_page` repetidamente até que uma página
+/// retorne menos itens que `DEFAULT_PER_PAGE` ou não haja mais próxima página.
+pub(crate) async fn paginate_all<T, F>(
     fetch_page: F,
     _operation: &str,
 ) -> Result<Vec<T>, GitLabError>
 where
-    F: Fn(u32) -> Result<(Vec<T>, PaginationInfo), GitLabError>,
+    T: serde::de::DeserializeOwned + 'static,
+    F: Fn(
+        u32,
+    )
+        -> Pin<Box<dyn Future<Output = Result<(Vec<T>, PaginationInfo), GitLabError>> + Send>>,
 {
     let mut all_items = Vec::new();
     let mut page: u32 = 1;
 
     loop {
-        let (items, pagination) = fetch_page(page)?;
+        let (items, pagination) = fetch_page(page).await?;
         let count = items.len();
         all_items.extend(items);
 
@@ -179,34 +139,24 @@ where
     Ok(all_items)
 }
 
-#[allow(dead_code)]
 /// Auto-pagina todas as páginas de um endpoint com paginação por cursor (keyset).
-///
-/// Utiliza o cabeçalho `X-NEXT-CURSOR` para navegar entre as páginas.
-/// A iteração termina quando uma página retorna zero itens ou o cursor
-/// não se altera entre chamadas consecutivas.
-///
-/// ## Params
-/// - `fetch_page`: Função que recebe um cursor opcional e retorna os itens e `PaginationInfo`.
-/// - `_operation`: Identificador textual da operação (para logging).
-///
-/// ## Returns
-/// `Result<Vec<T>, GitLabError>` — lista consolidada de todos os itens de todas as páginas.
-///
-/// ## Errors
-/// Retorna `GitLabError` se alguma chamada a `fetch_page` falhar.
-pub(crate) fn keyset_paginate_all<T: serde::de::DeserializeOwned, F>(
+#[expect(dead_code, reason = "reserved for future keyset pagination")]
+pub(crate) async fn keyset_paginate_all<T, F>(
     fetch_page: F,
     _operation: &str,
 ) -> Result<Vec<T>, GitLabError>
 where
-    F: Fn(Option<&str>) -> Result<(Vec<T>, PaginationInfo), GitLabError>,
+    T: serde::de::DeserializeOwned + 'static,
+    F: Fn(
+        Option<String>,
+    )
+        -> Pin<Box<dyn Future<Output = Result<(Vec<T>, PaginationInfo), GitLabError>> + Send>>,
 {
     let mut all_items = Vec::new();
     let mut cursor: Option<String> = None;
 
     loop {
-        let (items, pagination) = fetch_page(cursor.as_deref())?;
+        let (items, pagination) = fetch_page(cursor.clone()).await?;
         let count = items.len();
         all_items.extend(items);
 

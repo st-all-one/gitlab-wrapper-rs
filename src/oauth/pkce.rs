@@ -3,9 +3,16 @@
 //! Gera um verificador aleatório e seu respectivo desafio (SHA-256 codificado em base64url)
 //! de acordo com a especificação RFC 7636.
 
+use base64::Engine as _;
 use sha2::{Digest, Sha256};
 
 const VERIFIER_LENGTH: usize = 32;
+
+/// Codificador base64url sem padding.
+const B64: base64::engine::GeneralPurpose = base64::engine::GeneralPurpose::new(
+    &base64::alphabet::URL_SAFE,
+    base64::engine::general_purpose::NO_PAD,
+);
 
 /// Gera um verificador PKCE aleatório.
 ///
@@ -20,7 +27,7 @@ const VERIFIER_LENGTH: usize = 32;
 pub fn generate_code_verifier() -> String {
     let mut bytes = vec![0u8; VERIFIER_LENGTH];
     getrandom::getrandom(&mut bytes).expect("CSPRNG failure");
-    base64url_encode(&bytes)
+    B64.encode(&bytes)
 }
 
 /// Gera o desafio PKCE (`code_challenge`) a partir de um verificador.
@@ -37,64 +44,42 @@ pub fn generate_code_challenge(verifier: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(verifier.as_bytes());
     let hash = hasher.finalize();
-    base64url_encode(&hash)
+    B64.encode(hash)
 }
 
-/// Codifica um slice de bytes em base64url sem padding.
-///
-/// Converte os bytes para base64 usando a implementação interna [`base64_simple`]
-/// e substitui os caracteres `+` e `/` por `-` e `_` respectivamente, removendo
-/// o padding `=` no final, conforme o formato base64url (RFC 4648 §5).
-///
-/// ## Params
-/// - `input`: Slice de bytes a ser codificado.
-///
-/// ## Returns
-/// `String` — representação base64url sem padding.
-fn base64url_encode(input: &[u8]) -> String {
-    let b64 = base64_simple(input);
-    b64.replace('+', "-")
-        .replace('/', "_")
-        .trim_end_matches('=')
-        .to_string()
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-/// Implementação minimalista de codificação base64.
-///
-/// Processa a entrada em blocos de 3 bytes, produzindo 4 caracteres do alfabeto
-/// base64 padrão (`A–Z`, `a–z`, `0–9`, `+`, `/`). Blocos parciais recebem
-/// padding com `=`.
-///
-/// ## Params
-/// - `input`: Slice de bytes a ser codificado.
-///
-/// ## Returns
-/// `String` — representação base64 com padding.
-fn base64_simple(input: &[u8]) -> String {
-    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut result = String::new();
-
-    for chunk in input.chunks(3) {
-        let b0 = chunk[0] as u32;
-        let b1 = chunk.get(1).copied().unwrap_or(0) as u32;
-        let b2 = chunk.get(2).copied().unwrap_or(0) as u32;
-        let triple = (b0 << 16) | (b1 << 8) | b2;
-
-        result.push(CHARS[((triple >> 18) & 0x3F) as usize] as char);
-        result.push(CHARS[((triple >> 12) & 0x3F) as usize] as char);
-
-        if chunk.len() >= 2 {
-            result.push(CHARS[((triple >> 6) & 0x3F) as usize] as char);
-        } else {
-            result.push('=');
-        }
-
-        if chunk.len() >= 3 {
-            result.push(CHARS[(triple & 0x3F) as usize] as char);
-        } else {
-            result.push('=');
-        }
+    #[test]
+    fn test_generate_code_verifier_length() {
+        let verifier = generate_code_verifier();
+        // PKCE verifier should be 43-128 chars (base64url encoded 32+ bytes)
+        assert!(verifier.len() >= 43, "verifier too short: {}", verifier.len());
+        assert!(verifier.len() <= 128, "verifier too long: {}", verifier.len());
     }
 
-    result
+    #[test]
+    fn test_generate_code_challenge_length() {
+        let verifier = generate_code_verifier();
+        let challenge = generate_code_challenge(&verifier);
+        // SHA-256 base64url encoded = 43 chars
+        assert_eq!(challenge.len(), 43, "challenge should be exactly 43 chars");
+    }
+
+    #[test]
+    fn test_code_challenge_consistency() {
+        let verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+        let challenge = generate_code_challenge(verifier);
+        assert_eq!(challenge.len(), 43);
+    }
+
+    #[test]
+    fn test_different_verifiers_produce_different_challenges() {
+        let v1 = generate_code_verifier();
+        let v2 = generate_code_verifier();
+        let c1 = generate_code_challenge(&v1);
+        let c2 = generate_code_challenge(&v2);
+        assert_ne!(c1, c2, "two random verifiers should produce different challenges");
+    }
 }

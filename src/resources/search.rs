@@ -1,7 +1,7 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use std::sync::Arc;
 use crate::types::*;
+use std::sync::Arc;
 
 /// Recurso de API para operações de pesquisa no GitLab.
 #[derive(Debug)]
@@ -27,9 +27,16 @@ impl SearchResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn global(&self, scope: &str, search: &str) -> Result<Vec<SearchResultItem>, GitLabError> {
-        let query = vec![("scope".to_string(), scope.to_string()), ("search".to_string(), search.to_string())];
-        self.http.get("search", &query, "search.global")
+    pub async fn global(
+        &self,
+        scope: &str,
+        search: &str,
+    ) -> Result<Vec<SearchResultItem>, GitLabError> {
+        let query = vec![
+            ("scope".to_string(), scope.to_string()),
+            ("search".to_string(), search.to_string()),
+        ];
+        self.http.get("search", &query, "search.global").await
     }
 
     /// Pesquisa dentro de um grupo específico.
@@ -45,10 +52,18 @@ impl SearchResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn in_group(&self, group_id: u64, scope: &str, search: &str) -> Result<Vec<SearchResultItem>, GitLabError> {
+    pub async fn in_group(
+        &self,
+        group_id: u64,
+        scope: &str,
+        search: &str,
+    ) -> Result<Vec<SearchResultItem>, GitLabError> {
         let path = format!("groups/{}/search", group_id);
-        let query = vec![("scope".to_string(), scope.to_string()), ("search".to_string(), search.to_string())];
-        self.http.get(&path, &query, "search.in_group")
+        let query = vec![
+            ("scope".to_string(), scope.to_string()),
+            ("search".to_string(), search.to_string()),
+        ];
+        self.http.get(&path, &query, "search.in_group").await
     }
 
     /// Pesquisa dentro de um projeto específico.
@@ -64,9 +79,17 @@ impl SearchResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn in_project(&self, project_id: u64, scope: &str, search: &str) -> Result<Vec<SearchResultItem>, GitLabError> {
+    pub async fn in_project(
+        &self,
+        project_id: u64,
+        scope: &str,
+        search: &str,
+    ) -> Result<Vec<SearchResultItem>, GitLabError> {
         let path = format!("projects/{}/search", project_id);
-        let query = vec![("scope".to_string(), scope.to_string()), ("search".to_string(), search.to_string())];
-        self.http.get(&path, &query, "search.in_project")
+        let query = vec![
+            ("scope".to_string(), scope.to_string()),
+            ("search".to_string(), search.to_string()),
+        ];
+        self.http.get(&path, &query, "search.in_project").await
     }
 }

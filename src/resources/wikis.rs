@@ -1,8 +1,8 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use std::sync::Arc;
 use crate::types::*;
 use crate::utils::encoding::encode_query_param;
+use std::sync::Arc;
 
 /// Recurso de API para operações com wikis no GitLab.
 #[derive(Debug)]
@@ -27,9 +27,9 @@ impl WikisResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list(&self, project_id: u64) -> Result<Vec<WikiPage>, GitLabError> {
+    pub async fn list(&self, project_id: u64) -> Result<Vec<WikiPage>, GitLabError> {
         let path = format!("projects/{}/wikis", project_id);
-        self.http.get(&path, &[], "wikis.list")
+        self.http.get(&path, &[], "wikis.list").await
     }
 
     /// Obtém uma página de wiki pelo slug.
@@ -44,9 +44,9 @@ impl WikisResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get(&self, project_id: u64, slug: &str) -> Result<WikiPage, GitLabError> {
+    pub async fn get(&self, project_id: u64, slug: &str) -> Result<WikiPage, GitLabError> {
         let path = format!("projects/{}/wikis/{}", project_id, encode_query_param(slug));
-        self.http.get(&path, &[], "wikis.get")
+        self.http.get(&path, &[], "wikis.get").await
     }
 
     /// Cria uma nova página de wiki.
@@ -61,9 +61,13 @@ impl WikisResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create(&self, project_id: u64, payload: &CreateWikiPagePayload) -> Result<WikiPage, GitLabError> {
+    pub async fn create(
+        &self,
+        project_id: u64,
+        payload: &CreateWikiPagePayload,
+    ) -> Result<WikiPage, GitLabError> {
         let path = format!("projects/{}/wikis", project_id);
-        self.http.post(&path, &payload, "wikis.create")
+        self.http.post(&path, &payload, "wikis.create").await
     }
 
     /// Atualiza uma página de wiki existente.
@@ -79,9 +83,14 @@ impl WikisResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update(&self, project_id: u64, slug: &str, payload: &UpdateWikiPagePayload) -> Result<WikiPage, GitLabError> {
+    pub async fn update(
+        &self,
+        project_id: u64,
+        slug: &str,
+        payload: &UpdateWikiPagePayload,
+    ) -> Result<WikiPage, GitLabError> {
         let path = format!("projects/{}/wikis/{}", project_id, encode_query_param(slug));
-        self.http.put(&path, &payload, "wikis.update")
+        self.http.put(&path, &payload, "wikis.update").await
     }
 
     /// Remove uma página de wiki.
@@ -96,9 +105,9 @@ impl WikisResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete(&self, project_id: u64, slug: &str) -> Result<(), GitLabError> {
+    pub async fn delete(&self, project_id: u64, slug: &str) -> Result<(), GitLabError> {
         let path = format!("projects/{}/wikis/{}", project_id, encode_query_param(slug));
-        self.http.delete(&path, &[], "wikis.delete")
+        self.http.delete(&path, &[], "wikis.delete").await
     }
 
     /// Faz upload de um anexo para a wiki.
@@ -112,7 +121,13 @@ impl WikisResource {
     ///
     /// ## Errors
     /// Retorna `GitLabError::Config` informando que multipart não é suportado.
-    pub fn upload_attachment(&self, _project_id: u64, _file_path: &str) -> Result<serde_json::Value, GitLabError> {
-        Err(GitLabError::Config("Wiki attachment upload requires multipart - not supported via blocking HTTP client".into()))
+    pub async fn upload_attachment(
+        &self,
+        _project_id: u64,
+        _file_path: &str,
+    ) -> Result<serde_json::Value, GitLabError> {
+        Err(GitLabError::Config(
+            "Wiki attachment upload requires multipart - not supported via the HTTP client".into(),
+        ))
     }
 }

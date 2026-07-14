@@ -1,46 +1,47 @@
 use gitlab_wrapper::{
-    oauth::{self, AuthCodeUrlOptions},
     AuthMethod, GitLabClient, GitLabConfig,
+    oauth::{self, AuthCodeUrlOptions},
 };
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    env_logger::init();
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt::init();
 
     // ── Configuração ────────────────────────────────────────────────────
     let client = GitLabClient::new(GitLabConfig {
-        base_url: std::env::var("GITLAB_URL")
-            .unwrap_or_else(|_| "https://gitlab.com".into()),
-        token: Some(std::env::var("GITLAB_TOKEN")
-            .expect("GITLAB_TOKEN environment variable required")),
+        base_url: std::env::var("GITLAB_URL").unwrap_or_else(|_| "https://gitlab.com".into()),
+        token: Some(
+            std::env::var("GITLAB_TOKEN").expect("GITLAB_TOKEN environment variable required"),
+        ),
         auth_method: Some(AuthMethod::Bearer),
         ..Default::default()
     })?;
 
-    log::info!("GitLab client created for {}", client.config().base_url);
+    tracing::info!("GitLab client created for {}", client.config().base_url);
 
     // ── Projetos ────────────────────────────────────────────────────────
-    let projects = client.projects.list(None)?;
-    log::info!("Projects: {}", projects.len());
+    let projects = client.projects.list(None).await?;
+    tracing::info!("Projects: {}", projects.len());
 
     if let Some(project) = projects.first() {
-        log::info!("First project: {} (id={})", project.name, project.id);
+        tracing::info!("First project: {} (id={})", project.name, project.id);
     }
 
     // ── Usuário atual ──────────────────────────────────────────────────
-    let current_user = client.users.get_current()?;
-    log::info!("Authenticated as: {}", current_user.username);
+    let current_user = client.users.get_current().await?;
+    tracing::info!("Authenticated as: {}", current_user.username);
 
     // ── Grupos ──────────────────────────────────────────────────────────
-    let groups = client.groups.list(None)?;
-    log::info!("Groups: {}", groups.len());
+    let groups = client.groups.list(None).await?;
+    tracing::info!("Groups: {}", groups.len());
 
     // ── Issues ──────────────────────────────────────────────────────────
-    let issues = client.issues.list(None)?;
-    log::info!("Issues (global): {}", issues.len());
+    let issues = client.issues.list(None).await?;
+    tracing::info!("Issues (global): {}", issues.len());
 
     // ── Merge Requests ──────────────────────────────────────────────────
-    let mrs = client.merge_requests.list(None)?;
-    log::info!("Merge requests (global): {}", mrs.len());
+    let mrs = client.merge_requests.list(None).await?;
+    tracing::info!("Merge requests (global): {}", mrs.len());
 
     // ── oauth helpers ───────────────────────────────────────────────────
     let verifier = oauth::generate_code_verifier();
@@ -53,7 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         state: "random-state".into(),
         code_challenge: Some(challenge),
     });
-    log::info!("OAuth authorization URL: {}", auth_url);
+    tracing::info!("OAuth authorization URL: {}", auth_url);
 
     Ok(())
 }

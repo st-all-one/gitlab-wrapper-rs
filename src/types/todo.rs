@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::types::base::*;
+use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando uma tarefa (todo).
 #[derive(Debug, Clone, Serialize, Deserialize)]

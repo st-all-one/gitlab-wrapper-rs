@@ -1,7 +1,7 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use std::sync::Arc;
 use crate::types::*;
+use std::sync::Arc;
 
 /// Recurso de API para operações com chaves de deploy no GitLab.
 #[derive(Debug)]
@@ -26,9 +26,9 @@ impl DeployKeysResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn list(&self, project_id: u64) -> Result<Vec<DeployKey>, GitLabError> {
+    pub async fn list(&self, project_id: u64) -> Result<Vec<DeployKey>, GitLabError> {
         let path = format!("projects/{}/deploy_keys", project_id);
-        self.http.get(&path, &[], "deploy_keys.list")
+        self.http.get(&path, &[], "deploy_keys.list").await
     }
 
     /// Obtém uma chave de deploy pelo ID.
@@ -43,9 +43,9 @@ impl DeployKeysResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn get(&self, project_id: u64, key_id: u64) -> Result<DeployKey, GitLabError> {
+    pub async fn get(&self, project_id: u64, key_id: u64) -> Result<DeployKey, GitLabError> {
         let path = format!("projects/{}/deploy_keys/{}", project_id, key_id);
-        self.http.get(&path, &[], "deploy_keys.get")
+        self.http.get(&path, &[], "deploy_keys.get").await
     }
 
     /// Cria uma nova chave de deploy em um projeto.
@@ -60,9 +60,13 @@ impl DeployKeysResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn create(&self, project_id: u64, payload: &CreateDeployKeyPayload) -> Result<DeployKey, GitLabError> {
+    pub async fn create(
+        &self,
+        project_id: u64,
+        payload: &CreateDeployKeyPayload,
+    ) -> Result<DeployKey, GitLabError> {
         let path = format!("projects/{}/deploy_keys", project_id);
-        self.http.post(&path, &payload, "deploy_keys.create")
+        self.http.post(&path, &payload, "deploy_keys.create").await
     }
 
     /// Remove uma chave de deploy de um projeto.
@@ -77,9 +81,9 @@ impl DeployKeysResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn delete(&self, project_id: u64, key_id: u64) -> Result<(), GitLabError> {
+    pub async fn delete(&self, project_id: u64, key_id: u64) -> Result<(), GitLabError> {
         let path = format!("projects/{}/deploy_keys/{}", project_id, key_id);
-        self.http.delete(&path, &[], "deploy_keys.delete")
+        self.http.delete(&path, &[], "deploy_keys.delete").await
     }
 
     /// Atualiza uma chave de deploy existente.
@@ -95,9 +99,14 @@ impl DeployKeysResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn update(&self, project_id: u64, key_id: u64, payload: &UpdateDeployKeyPayload) -> Result<DeployKey, GitLabError> {
+    pub async fn update(
+        &self,
+        project_id: u64,
+        key_id: u64,
+        payload: &UpdateDeployKeyPayload,
+    ) -> Result<DeployKey, GitLabError> {
         let path = format!("projects/{}/deploy_keys/{}", project_id, key_id);
-        self.http.put(&path, &payload, "deploy_keys.update")
+        self.http.put(&path, &payload, "deploy_keys.update").await
     }
 
     /// Ativa uma chave de deploy em um projeto.
@@ -112,8 +121,8 @@ impl DeployKeysResource {
     /// ## Errors
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
-    pub fn enable(&self, project_id: u64, key_id: u64) -> Result<DeployKey, GitLabError> {
+    pub async fn enable(&self, project_id: u64, key_id: u64) -> Result<DeployKey, GitLabError> {
         let path = format!("projects/{}/deploy_keys/{}/enable", project_id, key_id);
-        self.http.post(&path, &serde_json::Value::Null, "deploy_keys.enable")
+        self.http.post(&path, &serde_json::Value::Null, "deploy_keys.enable").await
     }
 }

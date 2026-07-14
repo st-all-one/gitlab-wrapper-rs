@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use crate::types::base::GitLabId;
 use crate::types::commit::Commit;
+use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando um job (trabalho) de CI/CD.
 #[derive(Debug, Clone, Serialize, Deserialize)]
