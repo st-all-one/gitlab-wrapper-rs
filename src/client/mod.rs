@@ -42,7 +42,7 @@ impl GitLabClient {
     /// ## Returns
     /// `&ResolvedConfig` — configuração com valores padrão já aplicados.
     #[must_use]
-    pub fn config(&self) -> &ResolvedConfig {
+    pub const fn config(&self) -> &ResolvedConfig {
         &self.config
     }
 
@@ -59,6 +59,11 @@ impl GitLabClient {
     ///
     /// ## Errors
     /// Retorna `GitLabError::Config` se `base_url` estiver vazia.
+    #[tracing::instrument(
+        target = "gitlab_wrapper::core",
+        skip(config),
+        fields(operation = "client.new")
+    )]
     pub fn new(config: GitLabConfig) -> Result<Self, GitLabError> {
         if config.base_url.is_empty() {
             return Err(GitLabError::Config("base_url is required".into()));
@@ -68,7 +73,10 @@ impl GitLabClient {
         let config_ = resolved.clone();
         let http = Arc::new(HttpClient::new(resolved));
 
-        tracing::info!(target: "gitlab_wrapper", "GitLabClient initialized");
-        Ok(Self { config: config_, inner: ResourceGroup::new(http) })
+        tracing::info!(target: "gitlab_wrapper::core", "GitLabClient initialized");
+        Ok(Self {
+            config: config_,
+            inner: ResourceGroup::new(&http),
+        })
     }
 }

@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateEnvironmentPayload, Environment, UpdateEnvironmentPayload};
 use std::sync::Arc;
 
 /// Recurso de API para operações com ambientes no GitLab.
@@ -11,7 +11,7 @@ pub struct EnvironmentsResource {
 
 impl EnvironmentsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -27,7 +27,7 @@ impl EnvironmentsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list(&self, project_id: u64) -> Result<Vec<Environment>, GitLabError> {
-        let path = format!("projects/{}/environments", project_id);
+        let path = format!("projects/{project_id}/environments");
         self.http.get(&path, &[], "environments.list").await
     }
 
@@ -44,7 +44,7 @@ impl EnvironmentsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, env_id: u64) -> Result<Environment, GitLabError> {
-        let path = format!("projects/{}/environments/{}", project_id, env_id);
+        let path = format!("projects/{project_id}/environments/{env_id}");
         self.http.get(&path, &[], "environments.get").await
     }
 
@@ -65,7 +65,7 @@ impl EnvironmentsResource {
         project_id: u64,
         payload: &CreateEnvironmentPayload,
     ) -> Result<Environment, GitLabError> {
-        let path = format!("projects/{}/environments", project_id);
+        let path = format!("projects/{project_id}/environments");
         self.http.post(&path, &payload, "environments.create").await
     }
 
@@ -88,7 +88,7 @@ impl EnvironmentsResource {
         env_id: u64,
         payload: &UpdateEnvironmentPayload,
     ) -> Result<Environment, GitLabError> {
-        let path = format!("projects/{}/environments/{}", project_id, env_id);
+        let path = format!("projects/{project_id}/environments/{env_id}");
         self.http.put(&path, &payload, "environments.update").await
     }
 
@@ -105,7 +105,7 @@ impl EnvironmentsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64, env_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/environments/{}", project_id, env_id);
+        let path = format!("projects/{project_id}/environments/{env_id}");
         self.http.delete(&path, &[], "environments.delete").await
     }
 
@@ -122,7 +122,9 @@ impl EnvironmentsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn stop(&self, project_id: u64, env_id: u64) -> Result<Environment, GitLabError> {
-        let path = format!("projects/{}/environments/{}/stop", project_id, env_id);
-        self.http.post(&path, &serde_json::json!({}), "environments.stop").await
+        let path = format!("projects/{project_id}/environments/{env_id}/stop");
+        self.http
+            .post(&path, &serde_json::json!({}), "environments.stop")
+            .await
     }
 }

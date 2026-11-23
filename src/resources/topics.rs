@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateTopicPayload, Topic, TopicFilter, UpdateTopicPayload};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct TopicsResource {
 
 impl TopicsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -45,7 +45,7 @@ impl TopicsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, topic_id: u64) -> Result<Topic, GitLabError> {
-        let path = format!("topics/{}", topic_id);
+        let path = format!("topics/{topic_id}");
         self.http.get(&path, &[], "topics.get").await
     }
 
@@ -82,7 +82,7 @@ impl TopicsResource {
         topic_id: u64,
         payload: &UpdateTopicPayload,
     ) -> Result<Topic, GitLabError> {
-        let path = format!("topics/{}", topic_id);
+        let path = format!("topics/{topic_id}");
         self.http.put(&path, &payload, "topics.update").await
     }
 
@@ -98,7 +98,7 @@ impl TopicsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, topic_id: u64) -> Result<(), GitLabError> {
-        let path = format!("topics/{}", topic_id);
+        let path = format!("topics/{topic_id}");
         self.http.delete(&path, &[], "topics.delete").await
     }
 }

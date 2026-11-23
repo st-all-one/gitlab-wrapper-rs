@@ -10,7 +10,7 @@ pub struct KeysResource {
 
 impl KeysResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -30,6 +30,8 @@ impl KeysResource {
         fingerprint: &str,
     ) -> Result<serde_json::Value, GitLabError> {
         let query = vec![("fingerprint".to_string(), fingerprint.to_string())];
-        self.http.get("keys", &query, "keys.get_by_fingerprint").await
+        self.http
+            .get("keys", &query, "keys.get_by_fingerprint")
+            .await
     }
 }

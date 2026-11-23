@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateLicensePayload, LicenseInfo};
 use std::sync::Arc;
 
 /// Recurso de API para operações com a licença do GitLab.
@@ -11,7 +11,7 @@ pub struct LicenseResource {
 
 impl LicenseResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 

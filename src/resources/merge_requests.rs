@@ -1,6 +1,9 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{
+    AuthorInfo, Commit, CreateMergeRequestPayload, MergePayload, MergeRequest, MergeRequestFilter,
+    Pipeline, UpdateMergeRequestPayload,
+};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +15,7 @@ pub struct MergeRequestsResource {
 
 impl MergeRequestsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -32,7 +35,9 @@ impl MergeRequestsResource {
         filter: Option<&MergeRequestFilter>,
     ) -> Result<Vec<MergeRequest>, GitLabError> {
         let query = filter_to_query(filter);
-        self.http.get("merge_requests", &query, "merge_requests.list").await
+        self.http
+            .get("merge_requests", &query, "merge_requests.list")
+            .await
     }
 
     /// Lista merge requests de um projeto específico.
@@ -52,9 +57,11 @@ impl MergeRequestsResource {
         project_id: u64,
         filter: Option<&MergeRequestFilter>,
     ) -> Result<Vec<MergeRequest>, GitLabError> {
-        let path = format!("projects/{}/merge_requests", project_id);
+        let path = format!("projects/{project_id}/merge_requests");
         let query = filter_to_query(filter);
-        self.http.get(&path, &query, "merge_requests.list_for_project").await
+        self.http
+            .get(&path, &query, "merge_requests.list_for_project")
+            .await
     }
 
     /// Obtém um merge request pelo ID do projeto e IID do MR.
@@ -70,7 +77,7 @@ impl MergeRequestsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, mr_iid: u32) -> Result<MergeRequest, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}", project_id, mr_iid);
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}");
         self.http.get(&path, &[], "merge_requests.get").await
     }
 
@@ -91,8 +98,10 @@ impl MergeRequestsResource {
         project_id: u64,
         payload: &CreateMergeRequestPayload,
     ) -> Result<MergeRequest, GitLabError> {
-        let path = format!("projects/{}/merge_requests", project_id);
-        self.http.post(&path, &payload, "merge_requests.create").await
+        let path = format!("projects/{project_id}/merge_requests");
+        self.http
+            .post(&path, &payload, "merge_requests.create")
+            .await
     }
 
     /// Atualiza um merge request existente.
@@ -114,8 +123,10 @@ impl MergeRequestsResource {
         mr_iid: u32,
         payload: &UpdateMergeRequestPayload,
     ) -> Result<MergeRequest, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}", project_id, mr_iid);
-        self.http.put(&path, &payload, "merge_requests.update").await
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}");
+        self.http
+            .put(&path, &payload, "merge_requests.update")
+            .await
     }
 
     /// Remove um merge request.
@@ -131,7 +142,7 @@ impl MergeRequestsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64, mr_iid: u32) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}", project_id, mr_iid);
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}");
         self.http.delete(&path, &[], "merge_requests.delete").await
     }
 
@@ -154,7 +165,7 @@ impl MergeRequestsResource {
         mr_iid: u32,
         payload: Option<&MergePayload>,
     ) -> Result<MergeRequest, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/merge", project_id, mr_iid);
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/merge");
         let body = payload.unwrap_or(&MergePayload {
             merge_commit_message: None,
             squash_commit_message: None,
@@ -181,8 +192,7 @@ impl MergeRequestsResource {
         mr_iid: u32,
     ) -> Result<MergeRequest, GitLabError> {
         let path = format!(
-            "projects/{}/merge_requests/{}/cancel_merge_when_pipeline_succeeds",
-            project_id, mr_iid
+            "projects/{project_id}/merge_requests/{mr_iid}/cancel_merge_when_pipeline_succeeds"
         );
         self.http
             .post(
@@ -210,8 +220,10 @@ impl MergeRequestsResource {
         project_id: u64,
         mr_iid: u32,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/approve", project_id, mr_iid);
-        self.http.post(&path, &serde_json::json!({}), "merge_requests.approve").await
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/approve");
+        self.http
+            .post(&path, &serde_json::json!({}), "merge_requests.approve")
+            .await
     }
 
     /// Remove a aprovação de um merge request.
@@ -231,8 +243,10 @@ impl MergeRequestsResource {
         project_id: u64,
         mr_iid: u32,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/unapprove", project_id, mr_iid);
-        self.http.post(&path, &serde_json::json!({}), "merge_requests.unapprove").await
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/unapprove");
+        self.http
+            .post(&path, &serde_json::json!({}), "merge_requests.unapprove")
+            .await
     }
 
     /// Faz rebase de um merge request.
@@ -248,8 +262,10 @@ impl MergeRequestsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn rebase(&self, project_id: u64, mr_iid: u32) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/rebase", project_id, mr_iid);
-        self.http.put(&path, &serde_json::json!({}), "merge_requests.rebase").await
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/rebase");
+        self.http
+            .put(&path, &serde_json::json!({}), "merge_requests.rebase")
+            .await
     }
 
     /// Lista commits associados a um merge request.
@@ -265,7 +281,7 @@ impl MergeRequestsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn commits(&self, project_id: u64, mr_iid: u32) -> Result<Vec<Commit>, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/commits", project_id, mr_iid);
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/commits");
         self.http.get(&path, &[], "merge_requests.commits").await
     }
 
@@ -286,7 +302,7 @@ impl MergeRequestsResource {
         project_id: u64,
         mr_iid: u32,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/changes", project_id, mr_iid);
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/changes");
         self.http.get(&path, &[], "merge_requests.changes").await
     }
 
@@ -307,7 +323,7 @@ impl MergeRequestsResource {
         project_id: u64,
         mr_iid: u32,
     ) -> Result<Vec<Pipeline>, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/pipelines", project_id, mr_iid);
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/pipelines");
         self.http.get(&path, &[], "merge_requests.pipelines").await
     }
 
@@ -328,8 +344,14 @@ impl MergeRequestsResource {
         project_id: u64,
         mr_iid: u32,
     ) -> Result<Pipeline, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/pipelines", project_id, mr_iid);
-        self.http.post(&path, &serde_json::json!({}), "merge_requests.create_pipeline").await
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/pipelines");
+        self.http
+            .post(
+                &path,
+                &serde_json::json!({}),
+                "merge_requests.create_pipeline",
+            )
+            .await
     }
 
     /// Lista participantes de um merge request.
@@ -349,8 +371,10 @@ impl MergeRequestsResource {
         project_id: u64,
         mr_iid: u32,
     ) -> Result<Vec<AuthorInfo>, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/participants", project_id, mr_iid);
-        self.http.get(&path, &[], "merge_requests.participants").await
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/participants");
+        self.http
+            .get(&path, &[], "merge_requests.participants")
+            .await
     }
 
     /// Obtém o status de inscrição em um merge request.
@@ -370,8 +394,10 @@ impl MergeRequestsResource {
         project_id: u64,
         mr_iid: u32,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/subscription", project_id, mr_iid);
-        self.http.get(&path, &[], "merge_requests.subscription").await
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/subscription");
+        self.http
+            .get(&path, &[], "merge_requests.subscription")
+            .await
     }
 
     /// Inscreve-se em um merge request.
@@ -391,8 +417,10 @@ impl MergeRequestsResource {
         project_id: u64,
         mr_iid: u32,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/subscribe", project_id, mr_iid);
-        self.http.post(&path, &serde_json::json!({}), "merge_requests.subscribe").await
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/subscribe");
+        self.http
+            .post(&path, &serde_json::json!({}), "merge_requests.subscribe")
+            .await
     }
 
     /// Cancela a inscrição em um merge request.
@@ -412,8 +440,10 @@ impl MergeRequestsResource {
         project_id: u64,
         mr_iid: u32,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/unsubscribe", project_id, mr_iid);
-        self.http.post(&path, &serde_json::json!({}), "merge_requests.unsubscribe").await
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/unsubscribe");
+        self.http
+            .post(&path, &serde_json::json!({}), "merge_requests.unsubscribe")
+            .await
     }
 
     /// Define uma estimativa de tempo para um merge request.
@@ -435,9 +465,11 @@ impl MergeRequestsResource {
         mr_iid: u32,
         duration: &str,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/time_estimate", project_id, mr_iid);
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/time_estimate");
         let body = serde_json::json!({ "duration": duration });
-        self.http.post(&path, &body, "merge_requests.set_time_estimate").await
+        self.http
+            .post(&path, &body, "merge_requests.set_time_estimate")
+            .await
     }
 
     /// Adiciona tempo gasto a um merge request.
@@ -459,9 +491,11 @@ impl MergeRequestsResource {
         mr_iid: u32,
         duration: &str,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/add_spent_time", project_id, mr_iid);
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/add_spent_time");
         let body = serde_json::json!({ "duration": duration });
-        self.http.post(&path, &body, "merge_requests.add_spent_time").await
+        self.http
+            .post(&path, &body, "merge_requests.add_spent_time")
+            .await
     }
 
     /// Redefine a estimativa de tempo de um merge request.
@@ -481,8 +515,14 @@ impl MergeRequestsResource {
         project_id: u64,
         mr_iid: u32,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/reset_time_estimate", project_id, mr_iid);
-        self.http.post(&path, &serde_json::json!({}), "merge_requests.reset_time_estimate").await
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/reset_time_estimate");
+        self.http
+            .post(
+                &path,
+                &serde_json::json!({}),
+                "merge_requests.reset_time_estimate",
+            )
+            .await
     }
 
     /// Redefine o tempo gasto de um merge request.
@@ -502,8 +542,14 @@ impl MergeRequestsResource {
         project_id: u64,
         mr_iid: u32,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/reset_spent_time", project_id, mr_iid);
-        self.http.post(&path, &serde_json::json!({}), "merge_requests.reset_spent_time").await
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/reset_spent_time");
+        self.http
+            .post(
+                &path,
+                &serde_json::json!({}),
+                "merge_requests.reset_spent_time",
+            )
+            .await
     }
 
     /// Lista merge requests de um grupo.
@@ -523,8 +569,10 @@ impl MergeRequestsResource {
         group_id: u64,
         filter: Option<&MergeRequestFilter>,
     ) -> Result<Vec<MergeRequest>, GitLabError> {
-        let path = format!("groups/{}/merge_requests", group_id);
+        let path = format!("groups/{group_id}/merge_requests");
         let query = filter_to_query(filter);
-        self.http.get(&path, &query, "merge_requests.list_by_group").await
+        self.http
+            .get(&path, &query, "merge_requests.list_by_group")
+            .await
     }
 }

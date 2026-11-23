@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{AddMemberPayload, Member, UpdateMemberPayload};
 use std::sync::Arc;
 
 /// Recurso de API para operações com membros no GitLab.
@@ -11,7 +11,7 @@ pub struct MembersResource {
 
 impl MembersResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -27,7 +27,7 @@ impl MembersResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list_project_members(&self, project_id: u64) -> Result<Vec<Member>, GitLabError> {
-        let path = format!("projects/{}/members", project_id);
+        let path = format!("projects/{project_id}/members");
         self.http.get(&path, &[], "members.list_project").await
     }
 
@@ -48,7 +48,7 @@ impl MembersResource {
         project_id: u64,
         user_id: u64,
     ) -> Result<Member, GitLabError> {
-        let path = format!("projects/{}/members/{}", project_id, user_id);
+        let path = format!("projects/{project_id}/members/{user_id}");
         self.http.get(&path, &[], "members.get_project").await
     }
 
@@ -69,7 +69,7 @@ impl MembersResource {
         project_id: u64,
         payload: &AddMemberPayload,
     ) -> Result<Member, GitLabError> {
-        let path = format!("projects/{}/members", project_id);
+        let path = format!("projects/{project_id}/members");
         self.http.post(&path, &payload, "members.add_project").await
     }
 
@@ -92,8 +92,10 @@ impl MembersResource {
         user_id: u64,
         payload: &UpdateMemberPayload,
     ) -> Result<Member, GitLabError> {
-        let path = format!("projects/{}/members/{}", project_id, user_id);
-        self.http.put(&path, &payload, "members.update_project").await
+        let path = format!("projects/{project_id}/members/{user_id}");
+        self.http
+            .put(&path, &payload, "members.update_project")
+            .await
     }
 
     /// Remove um membro de um projeto.
@@ -113,7 +115,7 @@ impl MembersResource {
         project_id: u64,
         user_id: u64,
     ) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/members/{}", project_id, user_id);
+        let path = format!("projects/{project_id}/members/{user_id}");
         self.http.delete(&path, &[], "members.delete_project").await
     }
 
@@ -132,8 +134,10 @@ impl MembersResource {
         &self,
         project_id: u64,
     ) -> Result<Vec<Member>, GitLabError> {
-        let path = format!("projects/{}/members/all", project_id);
-        self.http.get(&path, &[], "members.list_project_inherited").await
+        let path = format!("projects/{project_id}/members/all");
+        self.http
+            .get(&path, &[], "members.list_project_inherited")
+            .await
     }
 
     /// Lista membros de um grupo.
@@ -148,7 +152,7 @@ impl MembersResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list_group_members(&self, group_id: u64) -> Result<Vec<Member>, GitLabError> {
-        let path = format!("groups/{}/members", group_id);
+        let path = format!("groups/{group_id}/members");
         self.http.get(&path, &[], "members.list_group").await
     }
 
@@ -169,7 +173,7 @@ impl MembersResource {
         group_id: u64,
         user_id: u64,
     ) -> Result<Member, GitLabError> {
-        let path = format!("groups/{}/members/{}", group_id, user_id);
+        let path = format!("groups/{group_id}/members/{user_id}");
         self.http.get(&path, &[], "members.get_group").await
     }
 
@@ -190,7 +194,7 @@ impl MembersResource {
         group_id: u64,
         payload: &AddMemberPayload,
     ) -> Result<Member, GitLabError> {
-        let path = format!("groups/{}/members", group_id);
+        let path = format!("groups/{group_id}/members");
         self.http.post(&path, &payload, "members.add_group").await
     }
 
@@ -213,7 +217,7 @@ impl MembersResource {
         user_id: u64,
         payload: &UpdateMemberPayload,
     ) -> Result<Member, GitLabError> {
-        let path = format!("groups/{}/members/{}", group_id, user_id);
+        let path = format!("groups/{group_id}/members/{user_id}");
         self.http.put(&path, &payload, "members.update_group").await
     }
 
@@ -234,7 +238,7 @@ impl MembersResource {
         group_id: u64,
         user_id: u64,
     ) -> Result<(), GitLabError> {
-        let path = format!("groups/{}/members/{}", group_id, user_id);
+        let path = format!("groups/{group_id}/members/{user_id}");
         self.http.delete(&path, &[], "members.delete_group").await
     }
 
@@ -253,7 +257,9 @@ impl MembersResource {
         &self,
         group_id: u64,
     ) -> Result<Vec<Member>, GitLabError> {
-        let path = format!("groups/{}/members/all", group_id);
-        self.http.get(&path, &[], "members.list_group_inherited").await
+        let path = format!("groups/{group_id}/members/all");
+        self.http
+            .get(&path, &[], "members.list_group_inherited")
+            .await
     }
 }

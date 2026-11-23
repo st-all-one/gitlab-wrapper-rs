@@ -1,6 +1,8 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{
+    CreateFeatureFlagPayload, FeatureFlag, FeatureFlagFilter, UpdateFeatureFlagPayload,
+};
 use crate::utils::encoding::{encode_query_param, filter_to_query};
 use std::sync::Arc;
 
@@ -12,7 +14,7 @@ pub struct FeatureFlagsResource {
 
 impl FeatureFlagsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,7 +35,7 @@ impl FeatureFlagsResource {
         project_id: u64,
         filter: Option<&FeatureFlagFilter>,
     ) -> Result<Vec<FeatureFlag>, GitLabError> {
-        let path = format!("projects/{}/feature_flags", project_id);
+        let path = format!("projects/{project_id}/feature_flags");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "feature_flags.list").await
     }
@@ -51,7 +53,11 @@ impl FeatureFlagsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, key: &str) -> Result<FeatureFlag, GitLabError> {
-        let path = format!("projects/{}/feature_flags/{}", project_id, encode_query_param(key));
+        let path = format!(
+            "projects/{}/feature_flags/{}",
+            project_id,
+            encode_query_param(key)
+        );
         self.http.get(&path, &[], "feature_flags.get").await
     }
 
@@ -72,7 +78,7 @@ impl FeatureFlagsResource {
         project_id: u64,
         payload: &CreateFeatureFlagPayload,
     ) -> Result<FeatureFlag, GitLabError> {
-        let path = format!("projects/{}/feature_flags", project_id);
+        let path = format!("projects/{project_id}/feature_flags");
         self.http.post(&path, payload, "feature_flags.create").await
     }
 
@@ -95,7 +101,11 @@ impl FeatureFlagsResource {
         key: &str,
         payload: &UpdateFeatureFlagPayload,
     ) -> Result<FeatureFlag, GitLabError> {
-        let path = format!("projects/{}/feature_flags/{}", project_id, encode_query_param(key));
+        let path = format!(
+            "projects/{}/feature_flags/{}",
+            project_id,
+            encode_query_param(key)
+        );
         self.http.put(&path, payload, "feature_flags.update").await
     }
 
@@ -112,7 +122,11 @@ impl FeatureFlagsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64, key: &str) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/feature_flags/{}", project_id, encode_query_param(key));
+        let path = format!(
+            "projects/{}/feature_flags/{}",
+            project_id,
+            encode_query_param(key)
+        );
         self.http.delete(&path, &[], "feature_flags.delete").await
     }
 }

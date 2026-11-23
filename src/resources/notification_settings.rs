@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::UpdateNotificationPayload;
 use std::sync::Arc;
 
 /// Recurso de API para operações com configurações de notificação no GitLab.
@@ -11,7 +11,7 @@ pub struct NotificationSettingsResource {
 
 impl NotificationSettingsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -24,7 +24,13 @@ impl NotificationSettingsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get_global(&self) -> Result<serde_json::Value, GitLabError> {
-        self.http.get("notification_settings", &[], "notification_settings.get_global").await
+        self.http
+            .get(
+                "notification_settings",
+                &[],
+                "notification_settings.get_global",
+            )
+            .await
     }
 
     /// Atualiza as configurações globais de notificação do usuário atual.
@@ -42,7 +48,13 @@ impl NotificationSettingsResource {
         &self,
         payload: &UpdateNotificationPayload,
     ) -> Result<serde_json::Value, GitLabError> {
-        self.http.put("notification_settings", payload, "notification_settings.update_global").await
+        self.http
+            .put(
+                "notification_settings",
+                payload,
+                "notification_settings.update_global",
+            )
+            .await
     }
 
     /// Obtém as configurações de notificação de um projeto.
@@ -57,8 +69,10 @@ impl NotificationSettingsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get_project(&self, project_id: u64) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/notification_settings", project_id);
-        self.http.get(&path, &[], "notification_settings.get_project").await
+        let path = format!("projects/{project_id}/notification_settings");
+        self.http
+            .get(&path, &[], "notification_settings.get_project")
+            .await
     }
 
     /// Atualiza as configurações de notificação de um projeto.
@@ -78,8 +92,10 @@ impl NotificationSettingsResource {
         project_id: u64,
         payload: &UpdateNotificationPayload,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/notification_settings", project_id);
-        self.http.put(&path, payload, "notification_settings.update_project").await
+        let path = format!("projects/{project_id}/notification_settings");
+        self.http
+            .put(&path, payload, "notification_settings.update_project")
+            .await
     }
 
     /// Obtém as configurações de notificação de um grupo.
@@ -94,8 +110,10 @@ impl NotificationSettingsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get_group(&self, group_id: u64) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("groups/{}/notification_settings", group_id);
-        self.http.get(&path, &[], "notification_settings.get_group").await
+        let path = format!("groups/{group_id}/notification_settings");
+        self.http
+            .get(&path, &[], "notification_settings.get_group")
+            .await
     }
 
     /// Atualiza as configurações de notificação de um grupo.
@@ -115,7 +133,9 @@ impl NotificationSettingsResource {
         group_id: u64,
         payload: &UpdateNotificationPayload,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("groups/{}/notification_settings", group_id);
-        self.http.put(&path, payload, "notification_settings.update_group").await
+        let path = format!("groups/{group_id}/notification_settings");
+        self.http
+            .put(&path, payload, "notification_settings.update_group")
+            .await
     }
 }

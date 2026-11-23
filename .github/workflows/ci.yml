@@ -1,0 +1,29 @@
+name: CI
+
+# Push em qualquer branch + PRs. Uma job Linux basta: make check cobre
+# fmt + clippy + testes, seguido de cargo test --locked.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: fmt + clippy + test (1.100)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.100
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: make check
+      - run: cargo test --locked

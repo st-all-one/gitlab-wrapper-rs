@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{AccessToken, CreateAccessTokenPayload};
 use std::sync::Arc;
 
 /// Recurso de API para operações com tokens de acesso de projetos e grupos no GitLab.
@@ -11,7 +11,7 @@ pub struct AccessTokensResource {
 
 impl AccessTokensResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -30,8 +30,10 @@ impl AccessTokensResource {
         &self,
         project_id: u64,
     ) -> Result<Vec<AccessToken>, GitLabError> {
-        let path = format!("projects/{}/access_tokens", project_id);
-        self.http.get(&path, &[], "access_tokens.list_project").await
+        let path = format!("projects/{project_id}/access_tokens");
+        self.http
+            .get(&path, &[], "access_tokens.list_project")
+            .await
     }
 
     /// Obtém um token de acesso específico de um projeto.
@@ -51,7 +53,7 @@ impl AccessTokensResource {
         project_id: u64,
         token_id: u64,
     ) -> Result<AccessToken, GitLabError> {
-        let path = format!("projects/{}/access_tokens/{}", project_id, token_id);
+        let path = format!("projects/{project_id}/access_tokens/{token_id}");
         self.http.get(&path, &[], "access_tokens.get_project").await
     }
 
@@ -72,8 +74,10 @@ impl AccessTokensResource {
         project_id: u64,
         payload: &CreateAccessTokenPayload,
     ) -> Result<AccessToken, GitLabError> {
-        let path = format!("projects/{}/access_tokens", project_id);
-        self.http.post(&path, &payload, "access_tokens.create_project").await
+        let path = format!("projects/{project_id}/access_tokens");
+        self.http
+            .post(&path, &payload, "access_tokens.create_project")
+            .await
     }
 
     /// Revoga um token de acesso de um projeto.
@@ -93,8 +97,10 @@ impl AccessTokensResource {
         project_id: u64,
         token_id: u64,
     ) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/access_tokens/{}", project_id, token_id);
-        self.http.delete(&path, &[], "access_tokens.revoke_project").await
+        let path = format!("projects/{project_id}/access_tokens/{token_id}");
+        self.http
+            .delete(&path, &[], "access_tokens.revoke_project")
+            .await
     }
 
     /// Lista todos os tokens de acesso de um grupo.
@@ -109,7 +115,7 @@ impl AccessTokensResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list_group_tokens(&self, group_id: u64) -> Result<Vec<AccessToken>, GitLabError> {
-        let path = format!("groups/{}/access_tokens", group_id);
+        let path = format!("groups/{group_id}/access_tokens");
         self.http.get(&path, &[], "access_tokens.list_group").await
     }
 
@@ -130,7 +136,7 @@ impl AccessTokensResource {
         group_id: u64,
         token_id: u64,
     ) -> Result<AccessToken, GitLabError> {
-        let path = format!("groups/{}/access_tokens/{}", group_id, token_id);
+        let path = format!("groups/{group_id}/access_tokens/{token_id}");
         self.http.get(&path, &[], "access_tokens.get_group").await
     }
 
@@ -151,8 +157,10 @@ impl AccessTokensResource {
         group_id: u64,
         payload: &CreateAccessTokenPayload,
     ) -> Result<AccessToken, GitLabError> {
-        let path = format!("groups/{}/access_tokens", group_id);
-        self.http.post(&path, &payload, "access_tokens.create_group").await
+        let path = format!("groups/{group_id}/access_tokens");
+        self.http
+            .post(&path, &payload, "access_tokens.create_group")
+            .await
     }
 
     /// Revoga um token de acesso de um grupo.
@@ -172,7 +180,9 @@ impl AccessTokensResource {
         group_id: u64,
         token_id: u64,
     ) -> Result<(), GitLabError> {
-        let path = format!("groups/{}/access_tokens/{}", group_id, token_id);
-        self.http.delete(&path, &[], "access_tokens.revoke_group").await
+        let path = format!("groups/{group_id}/access_tokens/{token_id}");
+        self.http
+            .delete(&path, &[], "access_tokens.revoke_group")
+            .await
     }
 }

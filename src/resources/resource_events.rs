@@ -1,6 +1,9 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{
+    ResourceIterationEvent, ResourceLabelEvent, ResourceMilestoneEvent, ResourceStateEvent,
+    ResourceWeightEvent,
+};
 use std::sync::Arc;
 
 /// Recurso de API para operações com eventos de recursos
@@ -12,40 +15,40 @@ pub struct ResourceEventsResource {
 
 impl ResourceEventsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
     fn issue_state_events_base(project_id: u64, issue_iid: u32) -> String {
-        format!("projects/{}/issues/{}/resource_state_events", project_id, issue_iid)
+        format!("projects/{project_id}/issues/{issue_iid}/resource_state_events")
     }
 
     fn mr_state_events_base(project_id: u64, mr_iid: u32) -> String {
-        format!("projects/{}/merge_requests/{}/resource_state_events", project_id, mr_iid)
+        format!("projects/{project_id}/merge_requests/{mr_iid}/resource_state_events")
     }
 
     fn issue_label_events_base(project_id: u64, issue_iid: u32) -> String {
-        format!("projects/{}/issues/{}/resource_label_events", project_id, issue_iid)
+        format!("projects/{project_id}/issues/{issue_iid}/resource_label_events")
     }
 
     fn mr_label_events_base(project_id: u64, mr_iid: u32) -> String {
-        format!("projects/{}/merge_requests/{}/resource_label_events", project_id, mr_iid)
+        format!("projects/{project_id}/merge_requests/{mr_iid}/resource_label_events")
     }
 
     fn issue_milestone_events_base(project_id: u64, issue_iid: u32) -> String {
-        format!("projects/{}/issues/{}/resource_milestone_events", project_id, issue_iid)
+        format!("projects/{project_id}/issues/{issue_iid}/resource_milestone_events")
     }
 
     fn mr_milestone_events_base(project_id: u64, mr_iid: u32) -> String {
-        format!("projects/{}/merge_requests/{}/resource_milestone_events", project_id, mr_iid)
+        format!("projects/{project_id}/merge_requests/{mr_iid}/resource_milestone_events")
     }
 
     fn issue_weight_events_base(project_id: u64, issue_iid: u32) -> String {
-        format!("projects/{}/issues/{}/resource_weight_events", project_id, issue_iid)
+        format!("projects/{project_id}/issues/{issue_iid}/resource_weight_events")
     }
 
     fn issue_iteration_events_base(project_id: u64, issue_iid: u32) -> String {
-        format!("projects/{}/issues/{}/resource_iteration_events", project_id, issue_iid)
+        format!("projects/{project_id}/issues/{issue_iid}/resource_iteration_events")
     }
 
     // -- State events --
@@ -68,7 +71,9 @@ impl ResourceEventsResource {
         issue_iid: u32,
     ) -> Result<Vec<ResourceStateEvent>, GitLabError> {
         let path = Self::issue_state_events_base(project_id, issue_iid);
-        self.http.get(&path, &[], "resource_events.list_issue_state").await
+        self.http
+            .get(&path, &[], "resource_events.list_issue_state")
+            .await
     }
 
     /// Lista eventos de estado de um merge request.
@@ -89,7 +94,9 @@ impl ResourceEventsResource {
         mr_iid: u32,
     ) -> Result<Vec<ResourceStateEvent>, GitLabError> {
         let path = Self::mr_state_events_base(project_id, mr_iid);
-        self.http.get(&path, &[], "resource_events.list_mr_state").await
+        self.http
+            .get(&path, &[], "resource_events.list_mr_state")
+            .await
     }
 
     // -- Label events --
@@ -112,7 +119,9 @@ impl ResourceEventsResource {
         issue_iid: u32,
     ) -> Result<Vec<ResourceLabelEvent>, GitLabError> {
         let path = Self::issue_label_events_base(project_id, issue_iid);
-        self.http.get(&path, &[], "resource_events.list_issue_label").await
+        self.http
+            .get(&path, &[], "resource_events.list_issue_label")
+            .await
     }
 
     /// Obtém um evento de label específico de uma issue.
@@ -134,8 +143,14 @@ impl ResourceEventsResource {
         issue_iid: u32,
         event_id: u64,
     ) -> Result<ResourceLabelEvent, GitLabError> {
-        let path = format!("{}/{}", Self::issue_label_events_base(project_id, issue_iid), event_id);
-        self.http.get(&path, &[], "resource_events.get_issue_label").await
+        let path = format!(
+            "{}/{}",
+            Self::issue_label_events_base(project_id, issue_iid),
+            event_id
+        );
+        self.http
+            .get(&path, &[], "resource_events.get_issue_label")
+            .await
     }
 
     /// Lista eventos de label de um merge request.
@@ -156,7 +171,9 @@ impl ResourceEventsResource {
         mr_iid: u32,
     ) -> Result<Vec<ResourceLabelEvent>, GitLabError> {
         let path = Self::mr_label_events_base(project_id, mr_iid);
-        self.http.get(&path, &[], "resource_events.list_mr_label").await
+        self.http
+            .get(&path, &[], "resource_events.list_mr_label")
+            .await
     }
 
     // -- Milestone events --
@@ -179,7 +196,9 @@ impl ResourceEventsResource {
         issue_iid: u32,
     ) -> Result<Vec<ResourceMilestoneEvent>, GitLabError> {
         let path = Self::issue_milestone_events_base(project_id, issue_iid);
-        self.http.get(&path, &[], "resource_events.list_issue_milestone").await
+        self.http
+            .get(&path, &[], "resource_events.list_issue_milestone")
+            .await
     }
 
     /// Lista eventos de milestone de um merge request.
@@ -200,7 +219,9 @@ impl ResourceEventsResource {
         mr_iid: u32,
     ) -> Result<Vec<ResourceMilestoneEvent>, GitLabError> {
         let path = Self::mr_milestone_events_base(project_id, mr_iid);
-        self.http.get(&path, &[], "resource_events.list_mr_milestone").await
+        self.http
+            .get(&path, &[], "resource_events.list_mr_milestone")
+            .await
     }
 
     // -- Weight events --
@@ -223,7 +244,9 @@ impl ResourceEventsResource {
         issue_iid: u32,
     ) -> Result<Vec<ResourceWeightEvent>, GitLabError> {
         let path = Self::issue_weight_events_base(project_id, issue_iid);
-        self.http.get(&path, &[], "resource_events.list_issue_weight").await
+        self.http
+            .get(&path, &[], "resource_events.list_issue_weight")
+            .await
     }
 
     // -- Iteration events --
@@ -246,6 +269,8 @@ impl ResourceEventsResource {
         issue_iid: u32,
     ) -> Result<Vec<ResourceIterationEvent>, GitLabError> {
         let path = Self::issue_iteration_events_base(project_id, issue_iid);
-        self.http.get(&path, &[], "resource_events.list_issue_iteration").await
+        self.http
+            .get(&path, &[], "resource_events.list_issue_iteration")
+            .await
     }
 }

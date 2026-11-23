@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateGroupHookPayload, GroupHook, GroupHookFilter, UpdateGroupHookPayload};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct GroupWebhooksResource {
 
 impl GroupWebhooksResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,7 +33,7 @@ impl GroupWebhooksResource {
         group_id: u64,
         filter: Option<&GroupHookFilter>,
     ) -> Result<Vec<GroupHook>, GitLabError> {
-        let path = format!("groups/{}/hooks", group_id);
+        let path = format!("groups/{group_id}/hooks");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "group_webhooks.list").await
     }
@@ -51,7 +51,7 @@ impl GroupWebhooksResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, group_id: u64, hook_id: u64) -> Result<GroupHook, GitLabError> {
-        let path = format!("groups/{}/hooks/{}", group_id, hook_id);
+        let path = format!("groups/{group_id}/hooks/{hook_id}");
         self.http.get(&path, &[], "group_webhooks.get").await
     }
 
@@ -72,8 +72,10 @@ impl GroupWebhooksResource {
         group_id: u64,
         payload: &CreateGroupHookPayload,
     ) -> Result<GroupHook, GitLabError> {
-        let path = format!("groups/{}/hooks", group_id);
-        self.http.post(&path, payload, "group_webhooks.create").await
+        let path = format!("groups/{group_id}/hooks");
+        self.http
+            .post(&path, payload, "group_webhooks.create")
+            .await
     }
 
     /// Atualiza um webhook de grupo existente.
@@ -95,7 +97,7 @@ impl GroupWebhooksResource {
         hook_id: u64,
         payload: &UpdateGroupHookPayload,
     ) -> Result<GroupHook, GitLabError> {
-        let path = format!("groups/{}/hooks/{}", group_id, hook_id);
+        let path = format!("groups/{group_id}/hooks/{hook_id}");
         self.http.put(&path, payload, "group_webhooks.update").await
     }
 
@@ -112,7 +114,7 @@ impl GroupWebhooksResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, group_id: u64, hook_id: u64) -> Result<(), GitLabError> {
-        let path = format!("groups/{}/hooks/{}", group_id, hook_id);
+        let path = format!("groups/{group_id}/hooks/{hook_id}");
         self.http.delete(&path, &[], "group_webhooks.delete").await
     }
 }

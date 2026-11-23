@@ -1,17 +1,30 @@
+//! Testes de integração dos helpers OAuth/PKCE.
+//!
 use gitlab_wrapper::oauth;
+
+/// Helper local: converte o resultado do gerador em valor para fixtures de teste.
+fn verifier() -> String {
+    oauth::generate_code_verifier().expect("CSPRNG disponível no ambiente de teste")
+}
 
 #[test]
 fn test_generate_code_verifier() {
-    let verifier = oauth::generate_code_verifier();
+    let verifier = verifier();
     assert!(!verifier.is_empty(), "Verifier should not be empty");
     // PKCE verifier should be 43-128 chars (base64url encoded 32+ bytes)
     assert!(verifier.len() >= 43);
     assert!(verifier.len() <= 128);
+    // Base64url sem padding: apenas caracteres URL-safe.
+    assert!(
+        verifier
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
+    );
 }
 
 #[test]
 fn test_generate_code_challenge() {
-    let verifier = oauth::generate_code_verifier();
+    let verifier = verifier();
     let challenge = oauth::generate_code_challenge(&verifier);
     assert!(!challenge.is_empty(), "Challenge should not be empty");
     // SHA-256 base64url encoded = 43 chars
@@ -22,8 +35,9 @@ fn test_generate_code_challenge() {
 fn test_code_challenge_consistency() {
     let verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
     let challenge = oauth::generate_code_challenge(verifier);
-    // Known SHA-256 base64url of this verifier
-    assert_eq!(challenge.len(), 43);
+    // RFC 7636 Appendix B — valor determinístico conhecido para este verificador.
+    assert_eq!(challenge, "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM");
+    assert_eq!(oauth::generate_code_challenge(verifier), challenge);
 }
 
 #[test]

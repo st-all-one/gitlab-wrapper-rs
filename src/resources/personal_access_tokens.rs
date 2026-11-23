@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{PersonalAccessToken, PersonalAccessTokenFilter};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct PersonalAccessTokensResource {
 
 impl PersonalAccessTokensResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,7 +33,9 @@ impl PersonalAccessTokensResource {
     ) -> Result<Vec<PersonalAccessToken>, GitLabError> {
         let path = "personal_access_tokens".to_string();
         let query = filter_to_query(filter);
-        self.http.get(&path, &query, "personal_access_tokens.list").await
+        self.http
+            .get(&path, &query, "personal_access_tokens.list")
+            .await
     }
 
     /// Obtém um token de acesso pessoal pelo ID.
@@ -48,8 +50,10 @@ impl PersonalAccessTokensResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, token_id: u64) -> Result<PersonalAccessToken, GitLabError> {
-        let path = format!("personal_access_tokens/{}", token_id);
-        self.http.get(&path, &[], "personal_access_tokens.get").await
+        let path = format!("personal_access_tokens/{token_id}");
+        self.http
+            .get(&path, &[], "personal_access_tokens.get")
+            .await
     }
 
     /// Revoga um token de acesso pessoal.
@@ -64,7 +68,9 @@ impl PersonalAccessTokensResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn revoke(&self, token_id: u64) -> Result<(), GitLabError> {
-        let path = format!("personal_access_tokens/{}", token_id);
-        self.http.delete(&path, &[], "personal_access_tokens.revoke").await
+        let path = format!("personal_access_tokens/{token_id}");
+        self.http
+            .delete(&path, &[], "personal_access_tokens.revoke")
+            .await
     }
 }

@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateGroupPayload, Group, GroupFilter, Project, UpdateGroupPayload, User};
 use crate::utils::encoding::encode_query_param;
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
@@ -13,7 +13,7 @@ pub struct GroupsResource {
 
 impl GroupsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -45,7 +45,7 @@ impl GroupsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, group_id: u64) -> Result<Group, GitLabError> {
-        let path = format!("groups/{}", group_id);
+        let path = format!("groups/{group_id}");
         self.http.get(&path, &[], "groups.get").await
     }
 
@@ -62,7 +62,7 @@ impl GroupsResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get_by_path(&self, path: &str) -> Result<Group, GitLabError> {
         let encoded = encode_query_param(path);
-        let url = format!("groups/{}", encoded);
+        let url = format!("groups/{encoded}");
         self.http.get(&url, &[], "groups.get_by_path").await
     }
 
@@ -98,7 +98,7 @@ impl GroupsResource {
         group_id: u64,
         payload: &UpdateGroupPayload,
     ) -> Result<Group, GitLabError> {
-        let path = format!("groups/{}", group_id);
+        let path = format!("groups/{group_id}");
         self.http.put(&path, &payload, "groups.update").await
     }
 
@@ -114,7 +114,7 @@ impl GroupsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, group_id: u64) -> Result<(), GitLabError> {
-        let path = format!("groups/{}", group_id);
+        let path = format!("groups/{group_id}");
         self.http.delete(&path, &[], "groups.delete").await
     }
 
@@ -130,7 +130,7 @@ impl GroupsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn subgroups(&self, group_id: u64) -> Result<Vec<Group>, GitLabError> {
-        let path = format!("groups/{}/subgroups", group_id);
+        let path = format!("groups/{group_id}/subgroups");
         self.http.get(&path, &[], "groups.subgroups").await
     }
 
@@ -146,7 +146,7 @@ impl GroupsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn descendant_groups(&self, group_id: u64) -> Result<Vec<Group>, GitLabError> {
-        let path = format!("groups/{}/descendant_groups", group_id);
+        let path = format!("groups/{group_id}/descendant_groups");
         self.http.get(&path, &[], "groups.descendant_groups").await
     }
 
@@ -162,7 +162,7 @@ impl GroupsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn projects(&self, group_id: u64) -> Result<Vec<Project>, GitLabError> {
-        let path = format!("groups/{}/projects", group_id);
+        let path = format!("groups/{group_id}/projects");
         self.http.get(&path, &[], "groups.projects").await
     }
 
@@ -178,7 +178,7 @@ impl GroupsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn shared_projects(&self, group_id: u64) -> Result<Vec<Project>, GitLabError> {
-        let path = format!("groups/{}/projects/shared", group_id);
+        let path = format!("groups/{group_id}/projects/shared");
         self.http.get(&path, &[], "groups.shared_projects").await
     }
 
@@ -194,7 +194,7 @@ impl GroupsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn saml_users(&self, group_id: u64) -> Result<Vec<User>, GitLabError> {
-        let path = format!("groups/{}/saml_users", group_id);
+        let path = format!("groups/{group_id}/saml_users");
         self.http.get(&path, &[], "groups.saml_users").await
     }
 
@@ -210,7 +210,7 @@ impl GroupsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn provisioned_users(&self, group_id: u64) -> Result<Vec<User>, GitLabError> {
-        let path = format!("groups/{}/provisioned_users", group_id);
+        let path = format!("groups/{group_id}/provisioned_users");
         self.http.get(&path, &[], "groups.provisioned_users").await
     }
 }

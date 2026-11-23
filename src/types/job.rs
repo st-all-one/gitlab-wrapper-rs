@@ -84,7 +84,7 @@ pub struct JobRunner {
     pub active: Option<bool>,
     /// Indica se o runner é compartilhado.
     pub is_shared: Option<bool>,
-    /// Tipo do runner (instance_type, group_type, project_type).
+    /// Tipo do runner (`instance_type`, `group_type`, `project_type`).
     pub runner_type: Option<String>,
     /// Status do runner.
     pub status: Option<String>,

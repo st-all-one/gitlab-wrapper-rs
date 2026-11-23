@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateDeployTokenPayload, DeployToken};
 use std::sync::Arc;
 
 /// Recurso de API para operações com tokens de deploy no GitLab.
@@ -11,7 +11,7 @@ pub struct DeployTokensResource {
 
 impl DeployTokensResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -30,8 +30,10 @@ impl DeployTokensResource {
         &self,
         project_id: u64,
     ) -> Result<Vec<DeployToken>, GitLabError> {
-        let path = format!("projects/{}/deploy_tokens", project_id);
-        self.http.get(&path, &[], "deploy_tokens.list_project").await
+        let path = format!("projects/{project_id}/deploy_tokens");
+        self.http
+            .get(&path, &[], "deploy_tokens.list_project")
+            .await
     }
 
     /// Lista todos os tokens de deploy de um grupo.
@@ -46,7 +48,7 @@ impl DeployTokensResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list_group_tokens(&self, group_id: u64) -> Result<Vec<DeployToken>, GitLabError> {
-        let path = format!("groups/{}/deploy_tokens", group_id);
+        let path = format!("groups/{group_id}/deploy_tokens");
         self.http.get(&path, &[], "deploy_tokens.list_group").await
     }
 
@@ -67,8 +69,10 @@ impl DeployTokensResource {
         project_id: u64,
         payload: &CreateDeployTokenPayload,
     ) -> Result<DeployToken, GitLabError> {
-        let path = format!("projects/{}/deploy_tokens", project_id);
-        self.http.post(&path, &payload, "deploy_tokens.create_project").await
+        let path = format!("projects/{project_id}/deploy_tokens");
+        self.http
+            .post(&path, &payload, "deploy_tokens.create_project")
+            .await
     }
 
     /// Cria um novo token de deploy em um grupo.
@@ -88,8 +92,10 @@ impl DeployTokensResource {
         group_id: u64,
         payload: &CreateDeployTokenPayload,
     ) -> Result<DeployToken, GitLabError> {
-        let path = format!("groups/{}/deploy_tokens", group_id);
-        self.http.post(&path, &payload, "deploy_tokens.create_group").await
+        let path = format!("groups/{group_id}/deploy_tokens");
+        self.http
+            .post(&path, &payload, "deploy_tokens.create_group")
+            .await
     }
 
     /// Revoga um token de deploy de um projeto.
@@ -109,8 +115,10 @@ impl DeployTokensResource {
         project_id: u64,
         token_id: u64,
     ) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/deploy_tokens/{}", project_id, token_id);
-        self.http.delete(&path, &[], "deploy_tokens.revoke_project").await
+        let path = format!("projects/{project_id}/deploy_tokens/{token_id}");
+        self.http
+            .delete(&path, &[], "deploy_tokens.revoke_project")
+            .await
     }
 
     /// Revoga um token de deploy de um grupo.
@@ -130,8 +138,10 @@ impl DeployTokensResource {
         group_id: u64,
         token_id: u64,
     ) -> Result<(), GitLabError> {
-        let path = format!("groups/{}/deploy_tokens/{}", group_id, token_id);
-        self.http.delete(&path, &[], "deploy_tokens.revoke_group").await
+        let path = format!("groups/{group_id}/deploy_tokens/{token_id}");
+        self.http
+            .delete(&path, &[], "deploy_tokens.revoke_group")
+            .await
     }
 
     /// Lista todos os tokens de deploy disponíveis.

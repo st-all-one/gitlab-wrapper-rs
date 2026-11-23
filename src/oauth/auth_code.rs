@@ -3,6 +3,7 @@
 //! Permite gerar URLs de autorização e trocar o código de autorização
 //! por um token de acesso, com suporte opcional a PKCE (RFC 7636).
 
+use std::fmt::Write as _;
 use std::sync::LazyLock;
 
 use crate::core::errors::{ErrorCategory, ErrorContext, GitLabError};
@@ -29,6 +30,11 @@ pub struct AuthCodeUrlOptions {
 }
 
 /// Gera a URL de autorização OAuth para o fluxo de código de autorização.
+#[tracing::instrument(
+    target = "gitlab_wrapper::oauth",
+    skip(options),
+    fields(operation = "oauth.authorization_code_url")
+)]
 pub fn authorization_code_url(options: &AuthCodeUrlOptions) -> String {
     let base = options.base_url.trim_end_matches('/');
     let mut url = format!(
@@ -40,9 +46,13 @@ pub fn authorization_code_url(options: &AuthCodeUrlOptions) -> String {
         encode_query_param(&options.state),
     );
 
-    if let Some(ref challenge) = options.code_challenge {
-        url.push_str(&format!("&code_challenge={}", encode_query_param(challenge)));
-        url.push_str("&code_challenge_method=S256");
+    if let Some(challenge) = &options.code_challenge {
+        // `write!` para `String` é infalível por construção.
+        let _ = write!(
+            url,
+            "&code_challenge={}&code_challenge_method=S256",
+            encode_query_param(challenge)
+        );
     }
 
     url
@@ -65,11 +75,20 @@ pub struct ExchangeCodeOptions {
 }
 
 /// Troca um código de autorização por um token de acesso OAuth.
+///
+/// ## Errors
+/// Retorna `GitLabError::Api` com `NetworkError` se a requisição falhar, `ParseError`
+/// se a resposta for inválida ou `AuthenticationFailed` se o GitLab recusar o código.
+#[tracing::instrument(
+    target = "gitlab_wrapper::oauth",
+    skip(options),
+    fields(operation = "oauth.exchange_authorization_code")
+)]
 pub async fn exchange_authorization_code(
     options: &ExchangeCodeOptions,
 ) -> Result<OAuthTokenResponse, GitLabError> {
     let base = options.base_url.trim_end_matches('/');
-    let url = format!("{}/oauth/token", base);
+    let url = format!("{base}/oauth/token");
 
     let mut form = vec![
         ("client_id".to_string(), options.client_id.clone()),
@@ -78,25 +97,30 @@ pub async fn exchange_authorization_code(
         ("grant_type".to_string(), "authorization_code".to_string()),
     ];
 
-    if let Some(ref secret) = options.client_secret {
+    if let Some(secret) = &options.client_secret {
         form.push(("client_secret".to_string(), secret.clone()));
     }
 
-    if let Some(ref verifier) = options.code_verifier {
+    if let Some(verifier) = &options.code_verifier {
         form.push(("code_verifier".to_string(), verifier.clone()));
     }
 
-    let resp = OAUTH_CLIENT.post(&url).form(&form).send().await.map_err(|e| {
-        GitLabError::api(
-            ErrorCategory::NetworkError,
-            503,
-            format!("OAuth request failed: {e}"),
-            ErrorContext {
-                operation: Some("oauth.exchange_authorization_code".into()),
-                ..Default::default()
-            },
-        )
-    })?;
+    let resp = OAUTH_CLIENT
+        .post(&url)
+        .form(&form)
+        .send()
+        .await
+        .map_err(|e| {
+            GitLabError::api(
+                ErrorCategory::NetworkError,
+                503,
+                format!("OAuth request failed: {e}"),
+                ErrorContext {
+                    operation: Some("oauth.exchange_authorization_code".into()),
+                    ..Default::default()
+                },
+            )
+        })?;
 
     let status = resp.status();
     if status.is_success() {

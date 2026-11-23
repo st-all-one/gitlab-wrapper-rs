@@ -15,7 +15,7 @@ pub struct IssueLink {
     pub created_at: Option<String>,
     /// Data da última atualização do link no formato ISO 8601.
     pub updated_at: Option<String>,
-    /// Tipo do link ("relates_to", "blocks", "is_blocked_by").
+    /// Tipo do link ("`relates_to`", "blocks", "`is_blocked_by`").
     pub link_type: Option<String>,
 }
 
@@ -48,7 +48,7 @@ pub struct CreateIssueLinkPayload {
     pub target_project_id: Option<GitLabId>,
     /// IID da issue de destino no projeto.
     pub target_issue_iid: u32,
-    /// Tipo do link ("relates_to", "blocks", "is_blocked_by").
+    /// Tipo do link ("`relates_to`", "blocks", "`is_blocked_by`").
     #[serde(skip_serializing_if = "Option::is_none")]
     pub link_type: Option<String>,
 }

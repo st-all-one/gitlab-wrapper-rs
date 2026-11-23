@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::Template;
 use crate::utils::encoding::encode_query_param;
 use std::sync::Arc;
 
@@ -11,19 +11,31 @@ pub struct ProjectTemplatesResource {
 }
 
 impl ProjectTemplatesResource {
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
     /// Executa a operação .
     /// Executa a operacao `list`.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError::Api` se o tipo for inválido ou o projeto não existir,
+    /// ou `GitLabError::Http` em erro de transporte da listagem.
     pub async fn list(&self, project_id: u64, type_: &str) -> Result<Vec<Template>, GitLabError> {
-        let path = format!("projects/{}/templates/{}", project_id, encode_query_param(type_));
+        let path = format!(
+            "projects/{}/templates/{}",
+            project_id,
+            encode_query_param(type_)
+        );
         self.http.get(&path, &[], "project_templates.list").await
     }
 
     /// Executa a operação .
     /// Executa a operacao `get`.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError::Api` se o template não existir ou `GitLabError::Http`
+    /// em erro de transporte da requisição.
     pub async fn get(
         &self,
         project_id: u64,

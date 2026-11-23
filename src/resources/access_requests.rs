@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{AccessRequest, AccessRequestFilter};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct AccessRequestsResource {
 
 impl AccessRequestsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,7 +33,7 @@ impl AccessRequestsResource {
         project_id: u64,
         filter: Option<&AccessRequestFilter>,
     ) -> Result<Vec<AccessRequest>, GitLabError> {
-        let path = format!("projects/{}/access_requests", project_id);
+        let path = format!("projects/{project_id}/access_requests");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "access_requests.list").await
     }
@@ -50,8 +50,10 @@ impl AccessRequestsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn request(&self, project_id: u64) -> Result<AccessRequest, GitLabError> {
-        let path = format!("projects/{}/access_requests", project_id);
-        self.http.post(&path, &serde_json::json!({}), "access_requests.request").await
+        let path = format!("projects/{project_id}/access_requests");
+        self.http
+            .post(&path, &serde_json::json!({}), "access_requests.request")
+            .await
     }
 
     /// Aprova uma solicitação de acesso a um projeto.
@@ -71,8 +73,10 @@ impl AccessRequestsResource {
         project_id: u64,
         user_id: u64,
     ) -> Result<AccessRequest, GitLabError> {
-        let path = format!("projects/{}/access_requests/{}/approve", project_id, user_id);
-        self.http.put(&path, &serde_json::json!({}), "access_requests.approve").await
+        let path = format!("projects/{project_id}/access_requests/{user_id}/approve");
+        self.http
+            .put(&path, &serde_json::json!({}), "access_requests.approve")
+            .await
     }
 
     /// Nega uma solicitação de acesso a um projeto.
@@ -88,7 +92,7 @@ impl AccessRequestsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn deny(&self, project_id: u64, user_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/access_requests/{}", project_id, user_id);
+        let path = format!("projects/{project_id}/access_requests/{user_id}");
         self.http.delete(&path, &[], "access_requests.deny").await
     }
 }

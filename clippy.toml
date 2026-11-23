@@ -1,0 +1,38 @@
+# =============================================================================
+# gitlab-wrapper-rs — clippy.toml (Rust 1.100 / Edition 2024)
+# Valores de configuração do Clippy. Os NÍVEIS de lint ficam em [lints.clippy]
+# no Cargo.toml. Sem listas disallowed agressivas: o crate usa HashMap em tipos
+# públicos, Instant em benchmarks e panic!/unwrap! em testes legados.
+# =============================================================================
+
+# -------------------------------------------------------------------- MSRV --
+# Contrato casado com `rust-version` (Cargo.toml) e `channel` (rust-toolchain.toml).
+msrv = "1.100"
+check-incompatible-msrv-in-tests = true
+
+# ------------------------------- unwrap / expect / panic (testes legados) ----
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-unwrap-in-consts = false
+allow-expect-in-consts = false
+
+# ----------------------------------------------------------------- testes --
+# `print_stdout`/`print_stderr` são deny no manifesto; exemplos e benches
+# precisam de allow localizado. Em cfg(test) os prints são permitidos aqui.
+allow-print-in-tests = true
+allow-dbg-in-tests = false
+
+# --------------------------------------------------------- estilo / docs ----
+upper-case-acronyms-aggressive = true
+unreadable-literal-lint-fractions = true
+doc-valid-idents = [
+  "GitLab", "GitLab.com", "git", "REST", "API", "HTTP", "HTTPS", "JSON",
+  "URL", "URI", "UUID", "OAuth", "PKCE", "RFC", "MSRV", "TLS", "TCP",
+  "CI", "CD", "ID", "IDs", "iid", "IID", "sudo", "reqwest", "tokio",
+  "criterion", "wiremock", "tracing", "serde", "rustls", "..",
+]
+
+# ------------------------------------------------------ comentário SAFETY --
+accept-comment-above-attributes = false
+accept-comment-above-statement = false

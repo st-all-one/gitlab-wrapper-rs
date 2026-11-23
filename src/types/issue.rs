@@ -1,4 +1,4 @@
-use crate::types::base::*;
+use crate::types::base::{AuthorInfo, GitLabId, Links, TaskCompletionStatus, TimeStats};
 use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando uma issue.
@@ -37,7 +37,7 @@ pub struct Issue {
     pub confidential: Option<bool>,
     /// Indica se a discussão está bloqueada.
     pub discussion_locked: Option<bool>,
-    /// Tipo da issue ("issue", "incident", "test_case").
+    /// Tipo da issue ("issue", "incident", "`test_case`").
     pub issue_type: Option<String>,
     /// Severidade da issue.
     pub severity: Option<String>,
@@ -70,6 +70,8 @@ pub struct Issue {
     /// Peso da issue.
     pub weight: Option<i32>,
     /// Links relacionados à issue.
+    // Nome imposto pela API GitLab (`_links`); não é campo ignorado.
+    #[allow(clippy::pub_underscore_fields)]
     pub _links: Option<Links>,
 }
 
@@ -82,7 +84,7 @@ pub struct IssueReferences {
     pub short: Option<String>,
     /// Referência relativa (ex.: "grupo/projeto#123").
     pub relative: Option<String>,
-    /// Referência completa (ex.: "https://gitlab.com/grupo/projeto/-/issues/123").
+    /// Referência completa (ex.: "<https://gitlab.com/grupo/projeto/-/issues/123>").
     pub full: Option<String>,
 }
 

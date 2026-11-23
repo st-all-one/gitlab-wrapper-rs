@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::PageSettings;
 use std::sync::Arc;
 
 /// Recurso de API para operações com páginas do GitLab Pages.
@@ -11,7 +11,7 @@ pub struct PagesResource {
 
 impl PagesResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -27,7 +27,7 @@ impl PagesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get_settings(&self, project_id: u64) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/pages", project_id);
+        let path = format!("projects/{project_id}/pages");
         self.http.get(&path, &[], "pages.get_settings").await
     }
 
@@ -48,7 +48,7 @@ impl PagesResource {
         project_id: u64,
         payload: &PageSettings,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/pages", project_id);
+        let path = format!("projects/{project_id}/pages");
         self.http.put(&path, payload, "pages.update_settings").await
     }
 }

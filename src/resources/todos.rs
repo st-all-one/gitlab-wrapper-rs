@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{Todo, TodoFilter};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct TodosResource {
 
 impl TodosResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -44,8 +44,10 @@ impl TodosResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn mark_done(&self, todo_id: u64) -> Result<Todo, GitLabError> {
-        let path = format!("todos/{}/mark_as_done", todo_id);
-        self.http.post(&path, &serde_json::json!({}), "todos.mark_done").await
+        let path = format!("todos/{todo_id}/mark_as_done");
+        self.http
+            .post(&path, &serde_json::json!({}), "todos.mark_done")
+            .await
     }
 
     /// Marca todas as tarefas como concluídas.
@@ -61,7 +63,11 @@ impl TodosResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn mark_all_done(&self) -> Result<Vec<Todo>, GitLabError> {
         self.http
-            .post("todos/mark_all_as_done", &serde_json::json!({}), "todos.mark_all_done")
+            .post(
+                "todos/mark_all_as_done",
+                &serde_json::json!({}),
+                "todos.mark_all_done",
+            )
             .await
     }
 }

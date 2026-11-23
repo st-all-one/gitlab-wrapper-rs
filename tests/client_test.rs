@@ -1,10 +1,11 @@
+//! Testes de integração do cliente GitLab com wiremock.
+//!
 use gitlab_wrapper::{AuthMethod, ErrorCategory, GitLabClient, GitLabConfig, GitLabError};
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 struct TestContext {
     client: GitLabClient,
-    #[allow(dead_code)]
     server: MockServer,
 }
 
@@ -106,7 +107,9 @@ async fn test_404_error() {
 
     let result = ctx.client.projects.get(999).await;
     match result {
-        Err(GitLabError::Api { category, status, .. }) => {
+        Err(GitLabError::Api {
+            category, status, ..
+        }) => {
             assert_eq!(category, ErrorCategory::ResourceNotFound);
             assert_eq!(status, 404);
         }
@@ -138,7 +141,9 @@ async fn test_auth_header_sent() {
     Mock::given(method("GET"))
         .and(path("/api/v4/user"))
         .and(|req: &wiremock::Request| {
-            req.headers.get("Authorization").map(|v| v == "Bearer test-token").unwrap_or(false)
+            req.headers
+                .get("Authorization")
+                .is_some_and(|v| v == "Bearer test-token")
         })
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "id": 1,

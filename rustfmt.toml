@@ -1,4 +1,11 @@
+# Configuração do rustfmt do gitlab-wrapper-rs (apenas opções ESTÁVEIS).
+# Toolchain estável 1.100: opções como `imports_granularity`/`group_imports` não são usadas.
+
+edition = "2024"
+style_edition = "2024"
 max_width = 100
 tab_spaces = 4
 newline_style = "Unix"
-use_small_heuristics = "Max"
+hex_literal_case = "Lower"
+use_field_init_shorthand = true
+use_try_shorthand = true

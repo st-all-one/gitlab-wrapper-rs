@@ -11,7 +11,7 @@ pub struct SearchResultItem {
     pub title: Option<String>,
     /// Descrição do item.
     pub description: Option<String>,
-    /// Tipo do item (project, issue, merge_request, etc.).
+    /// Tipo do item (project, issue, `merge_request`, etc.).
     #[serde(rename = "type")]
     pub type_: Option<String>,
     /// URL do item.

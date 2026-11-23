@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateNotePayload, Note, UpdateNotePayload};
 use std::sync::Arc;
 
 /// Recurso de API para operações com notas no GitLab.
@@ -11,28 +11,28 @@ pub struct NotesResource {
 
 impl NotesResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
     fn base_issue(project_id: u64, issue_iid: u32) -> String {
-        format!("projects/{}/issues/{}/notes", project_id, issue_iid)
+        format!("projects/{project_id}/issues/{issue_iid}/notes")
     }
 
     fn base_mr(project_id: u64, mr_iid: u32) -> String {
-        format!("projects/{}/merge_requests/{}/notes", project_id, mr_iid)
+        format!("projects/{project_id}/merge_requests/{mr_iid}/notes")
     }
 
     fn base_commit(project_id: u64, sha: &str) -> String {
-        format!("projects/{}/repository/commits/{}/notes", project_id, sha)
+        format!("projects/{project_id}/repository/commits/{sha}/notes")
     }
 
     fn base_snippet(project_id: u64, snippet_id: u64) -> String {
-        format!("projects/{}/snippets/{}/notes", project_id, snippet_id)
+        format!("projects/{project_id}/snippets/{snippet_id}/notes")
     }
 
     fn base_wiki(project_id: u64, slug: &str) -> String {
-        format!("projects/{}/wikis/{}/notes", project_id, slug)
+        format!("projects/{project_id}/wikis/{slug}/notes")
     }
 
     /// Lista notas de uma issue.
@@ -421,7 +421,9 @@ impl NotesResource {
         payload: &CreateNotePayload,
     ) -> Result<Note, GitLabError> {
         let path = Self::base_snippet(project_id, snippet_id);
-        self.http.post(&path, &payload, "notes.create_snippet").await
+        self.http
+            .post(&path, &payload, "notes.create_snippet")
+            .await
     }
 
     /// Obtém uma nota específica de um snippet.

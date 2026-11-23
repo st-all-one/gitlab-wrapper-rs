@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateRemoteMirrorPayload, RemoteMirror, UpdateRemoteMirrorPayload};
 use std::sync::Arc;
 
 /// Recurso de API para operações com espelhos remotos (remote mirrors) no GitLab.
@@ -11,7 +11,7 @@ pub struct RemoteMirrorsResource {
 
 impl RemoteMirrorsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -27,7 +27,7 @@ impl RemoteMirrorsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list(&self, project_id: u64) -> Result<Vec<RemoteMirror>, GitLabError> {
-        let path = format!("projects/{}/remote_mirrors", project_id);
+        let path = format!("projects/{project_id}/remote_mirrors");
         self.http.get(&path, &[], "remote_mirrors.list").await
     }
 
@@ -48,8 +48,10 @@ impl RemoteMirrorsResource {
         project_id: u64,
         payload: &CreateRemoteMirrorPayload,
     ) -> Result<RemoteMirror, GitLabError> {
-        let path = format!("projects/{}/remote_mirrors", project_id);
-        self.http.post(&path, payload, "remote_mirrors.create").await
+        let path = format!("projects/{project_id}/remote_mirrors");
+        self.http
+            .post(&path, payload, "remote_mirrors.create")
+            .await
     }
 
     /// Atualiza um espelho remoto existente.
@@ -71,7 +73,7 @@ impl RemoteMirrorsResource {
         mirror_id: u64,
         payload: &UpdateRemoteMirrorPayload,
     ) -> Result<RemoteMirror, GitLabError> {
-        let path = format!("projects/{}/remote_mirrors/{}", project_id, mirror_id);
+        let path = format!("projects/{project_id}/remote_mirrors/{mirror_id}");
         self.http.put(&path, payload, "remote_mirrors.update").await
     }
 }

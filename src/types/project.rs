@@ -1,4 +1,4 @@
-use crate::types::base::*;
+use crate::types::base::{AuthorInfo, GitLabId, Links};
 use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando um projeto.
@@ -83,9 +83,9 @@ pub struct Project {
     pub remove_source_branch_after_merge: Option<bool>,
     /// Indica se o link do merge request é exibido ao imprimir.
     pub printing_merge_request_link_enabled: Option<bool>,
-    /// Método de merge utilizado ("merge", "rebase_merge", "ff").
+    /// Método de merge utilizado ("merge", "`rebase_merge`", "ff").
     pub merge_method: Option<String>,
-    /// Opção de squash configurada ("never", "always", "default_on", "default_off").
+    /// Opção de squash configurada ("never", "always", "`default_on`", "`default_off`").
     pub squash_option: Option<String>,
     /// Indica se o Auto DevOps está habilitado.
     pub auto_devops_enabled: Option<bool>,
@@ -98,6 +98,8 @@ pub struct Project {
     /// Grupos com os quais o projeto foi compartilhado.
     pub shared_with_groups: Option<Vec<serde_json::Value>>,
     /// Links relacionados ao projeto.
+    // Nome imposto pela API GitLab (`_links`); não é campo ignorado.
+    #[allow(clippy::pub_underscore_fields)]
     pub _links: Option<Links>,
 }
 

@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{Commit, CommitDiff, CommitFilter, CreateCommitPayload, MergeRequest, Note};
 use crate::utils::encoding::encode_query_param;
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
@@ -13,7 +13,7 @@ pub struct CommitsResource {
 
 impl CommitsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -34,7 +34,7 @@ impl CommitsResource {
         project_id: u64,
         filter: Option<&CommitFilter>,
     ) -> Result<Vec<Commit>, GitLabError> {
-        let path = format!("projects/{}/repository/commits", project_id);
+        let path = format!("projects/{project_id}/repository/commits");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "commits.list").await
     }
@@ -52,8 +52,11 @@ impl CommitsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, sha: &str) -> Result<Commit, GitLabError> {
-        let path =
-            format!("projects/{}/repository/commits/{}", project_id, encode_query_param(sha));
+        let path = format!(
+            "projects/{}/repository/commits/{}",
+            project_id,
+            encode_query_param(sha)
+        );
         self.http.get(&path, &[], "commits.get").await
     }
 
@@ -74,7 +77,7 @@ impl CommitsResource {
         project_id: u64,
         payload: &CreateCommitPayload,
     ) -> Result<Commit, GitLabError> {
-        let path = format!("projects/{}/repository/commits", project_id);
+        let path = format!("projects/{project_id}/repository/commits");
         self.http.post(&path, &payload, "commits.create").await
     }
 
@@ -147,8 +150,11 @@ impl CommitsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn diff(&self, project_id: u64, sha: &str) -> Result<Vec<CommitDiff>, GitLabError> {
-        let path =
-            format!("projects/{}/repository/commits/{}/diff", project_id, encode_query_param(sha));
+        let path = format!(
+            "projects/{}/repository/commits/{}/diff",
+            project_id,
+            encode_query_param(sha)
+        );
         self.http.get(&path, &[], "commits.diff").await
     }
 
@@ -165,8 +171,11 @@ impl CommitsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn refs(&self, project_id: u64, sha: &str) -> Result<serde_json::Value, GitLabError> {
-        let path =
-            format!("projects/{}/repository/commits/{}/refs", project_id, encode_query_param(sha));
+        let path = format!(
+            "projects/{}/repository/commits/{}/refs",
+            project_id,
+            encode_query_param(sha)
+        );
         self.http.get(&path, &[], "commits.refs").await
     }
 

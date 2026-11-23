@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateSnippetPayload, Snippet, SnippetFilter, UpdateSnippetPayload};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct SnippetsResource {
 
 impl SnippetsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,7 +33,7 @@ impl SnippetsResource {
         project_id: u64,
         filter: Option<&SnippetFilter>,
     ) -> Result<Vec<Snippet>, GitLabError> {
-        let path = format!("projects/{}/snippets", project_id);
+        let path = format!("projects/{project_id}/snippets");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "snippets.list").await
     }
@@ -51,7 +51,7 @@ impl SnippetsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, snippet_id: u64) -> Result<Snippet, GitLabError> {
-        let path = format!("projects/{}/snippets/{}", project_id, snippet_id);
+        let path = format!("projects/{project_id}/snippets/{snippet_id}");
         self.http.get(&path, &[], "snippets.get").await
     }
 
@@ -72,7 +72,7 @@ impl SnippetsResource {
         project_id: u64,
         payload: &CreateSnippetPayload,
     ) -> Result<Snippet, GitLabError> {
-        let path = format!("projects/{}/snippets", project_id);
+        let path = format!("projects/{project_id}/snippets");
         self.http.post(&path, &payload, "snippets.create").await
     }
 
@@ -95,7 +95,7 @@ impl SnippetsResource {
         snippet_id: u64,
         payload: &UpdateSnippetPayload,
     ) -> Result<Snippet, GitLabError> {
-        let path = format!("projects/{}/snippets/{}", project_id, snippet_id);
+        let path = format!("projects/{project_id}/snippets/{snippet_id}");
         self.http.put(&path, &payload, "snippets.update").await
     }
 
@@ -112,7 +112,7 @@ impl SnippetsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64, snippet_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/snippets/{}", project_id, snippet_id);
+        let path = format!("projects/{project_id}/snippets/{snippet_id}");
         self.http.delete(&path, &[], "snippets.delete").await
     }
 
@@ -133,7 +133,7 @@ impl SnippetsResource {
         project_id: u64,
         snippet_id: u64,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/snippets/{}/raw", project_id, snippet_id);
+        let path = format!("projects/{project_id}/snippets/{snippet_id}/raw");
         self.http.get(&path, &[], "snippets.raw").await
     }
 }

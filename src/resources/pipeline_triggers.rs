@@ -1,6 +1,9 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{
+    CreatePipelineTriggerPayload, PipelineTrigger, PipelineTriggerFilter,
+    UpdatePipelineTriggerPayload,
+};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +15,7 @@ pub struct PipelineTriggersResource {
 
 impl PipelineTriggersResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,7 +36,7 @@ impl PipelineTriggersResource {
         project_id: u64,
         filter: Option<&PipelineTriggerFilter>,
     ) -> Result<Vec<PipelineTrigger>, GitLabError> {
-        let path = format!("projects/{}/triggers", project_id);
+        let path = format!("projects/{project_id}/triggers");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "pipeline_triggers.list").await
     }
@@ -55,7 +58,7 @@ impl PipelineTriggersResource {
         project_id: u64,
         trigger_id: u64,
     ) -> Result<PipelineTrigger, GitLabError> {
-        let path = format!("projects/{}/triggers/{}", project_id, trigger_id);
+        let path = format!("projects/{project_id}/triggers/{trigger_id}");
         self.http.get(&path, &[], "pipeline_triggers.get").await
     }
 
@@ -76,8 +79,10 @@ impl PipelineTriggersResource {
         project_id: u64,
         payload: &CreatePipelineTriggerPayload,
     ) -> Result<PipelineTrigger, GitLabError> {
-        let path = format!("projects/{}/triggers", project_id);
-        self.http.post(&path, payload, "pipeline_triggers.create").await
+        let path = format!("projects/{project_id}/triggers");
+        self.http
+            .post(&path, payload, "pipeline_triggers.create")
+            .await
     }
 
     /// Atualiza um trigger de pipeline existente.
@@ -99,8 +104,10 @@ impl PipelineTriggersResource {
         trigger_id: u64,
         payload: &UpdatePipelineTriggerPayload,
     ) -> Result<PipelineTrigger, GitLabError> {
-        let path = format!("projects/{}/triggers/{}", project_id, trigger_id);
-        self.http.put(&path, payload, "pipeline_triggers.update").await
+        let path = format!("projects/{project_id}/triggers/{trigger_id}");
+        self.http
+            .put(&path, payload, "pipeline_triggers.update")
+            .await
     }
 
     /// Remove um trigger de pipeline.
@@ -116,8 +123,10 @@ impl PipelineTriggersResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64, trigger_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/triggers/{}", project_id, trigger_id);
-        self.http.delete(&path, &[], "pipeline_triggers.delete").await
+        let path = format!("projects/{project_id}/triggers/{trigger_id}");
+        self.http
+            .delete(&path, &[], "pipeline_triggers.delete")
+            .await
     }
 
     /// Assume a posse de um trigger de pipeline.
@@ -137,7 +146,13 @@ impl PipelineTriggersResource {
         project_id: u64,
         trigger_id: u64,
     ) -> Result<PipelineTrigger, GitLabError> {
-        let path = format!("projects/{}/triggers/{}/take_ownership", project_id, trigger_id);
-        self.http.post(&path, &serde_json::json!({}), "pipeline_triggers.take_ownership").await
+        let path = format!("projects/{project_id}/triggers/{trigger_id}/take_ownership");
+        self.http
+            .post(
+                &path,
+                &serde_json::json!({}),
+                "pipeline_triggers.take_ownership",
+            )
+            .await
     }
 }

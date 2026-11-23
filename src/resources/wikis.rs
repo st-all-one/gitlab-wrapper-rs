@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateWikiPagePayload, UpdateWikiPagePayload, WikiAttachmentResult, WikiPage};
 use crate::utils::encoding::encode_query_param;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct WikisResource {
 
 impl WikisResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -28,7 +28,7 @@ impl WikisResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list(&self, project_id: u64) -> Result<Vec<WikiPage>, GitLabError> {
-        let path = format!("projects/{}/wikis", project_id);
+        let path = format!("projects/{project_id}/wikis");
         self.http.get(&path, &[], "wikis.list").await
     }
 
@@ -66,7 +66,7 @@ impl WikisResource {
         project_id: u64,
         payload: &CreateWikiPagePayload,
     ) -> Result<WikiPage, GitLabError> {
-        let path = format!("projects/{}/wikis", project_id);
+        let path = format!("projects/{project_id}/wikis");
         self.http.post(&path, &payload, "wikis.create").await
     }
 
@@ -132,9 +132,11 @@ impl WikisResource {
         file_name: &str,
         data: Vec<u8>,
     ) -> Result<WikiAttachmentResult, GitLabError> {
-        let path = format!("projects/{}/wikis/attachments", project_id);
+        let path = format!("projects/{project_id}/wikis/attachments");
         let part = reqwest::multipart::Part::bytes(data).file_name(file_name.to_string());
         let form = reqwest::multipart::Form::new().part("file", part);
-        self.http.post_multipart(&path, form, "wikis.upload_attachment").await
+        self.http
+            .post_multipart(&path, form, "wikis.upload_attachment")
+            .await
     }
 }

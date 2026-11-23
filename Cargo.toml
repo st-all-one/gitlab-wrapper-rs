@@ -2,7 +2,7 @@
 name = "gitlab-wrapper-rs"
 version = "0.2.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.100"
 resolver = "2"
 license = "MPL-2.0"
 description = "Typed async Rust wrapper for the GitLab REST API v4"
@@ -29,8 +29,6 @@ uuid = { version = "1", features = ["v7"] }
 sha2 = "0.10"
 getrandom = { version = "0.2", features = ["std"] }
 tokio = { version = "1", features = ["time", "sync"] }
-futures = "0.3"
-tokio-stream = "0.1"
 base64 = "0.22"
 
 [dev-dependencies]
@@ -44,10 +42,45 @@ name = "encoding"
 harness = false
 
 [lints.rust]
-unsafe_code = "forbid"
+# `unsafe_code` já é `forbid` no crate root; manter aqui como contrato do manifesto.
+unsafe_code = "deny"
+missing_docs = "deny"
+unused_qualifications = "deny"
+elided_lifetimes_in_paths = "deny"
+trivial_casts = "deny"
+unused_import_braces = "deny"
+variant_size_differences = "warn"
+
+[lints.rustdoc]
+broken_intra_doc_links = "deny"
+
+[lints.cargo]
+# Cargo 1.100: dependência declarada e nunca usada é erro de rigor.
+unused_dependencies = "deny"
 
 [lints.clippy]
-unwrap_used = "warn"
+# Grupos com prioridade menor para permitir ajustes pontuais.
+all = { level = "deny", priority = -1 }
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "deny", priority = -1 }
+style = { level = "deny", priority = -1 }
+complexity = { level = "deny", priority = -1 }
+perf = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+
+# Restrição curada: produção rigorosa; testes legados são liberados via clippy.toml.
+# `panic` não é habilitado: a suíte legada usa panic! em fixtures.
+wildcard_imports = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+dbg_macro = "deny"
+print_stdout = "deny"
+print_stderr = "deny"
+exit = "deny"
+mem_forget = "deny"
+await_holding_lock = "deny"
 
 [profile.release]
 opt-level = 3

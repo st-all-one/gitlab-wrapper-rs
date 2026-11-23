@@ -10,7 +10,7 @@ pub struct IntegrationsResource {
 
 impl IntegrationsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -26,7 +26,7 @@ impl IntegrationsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list(&self, project_id: u64) -> Result<Vec<serde_json::Value>, GitLabError> {
-        let path = format!("projects/{}/integrations", project_id);
+        let path = format!("projects/{project_id}/integrations");
         self.http.get(&path, &[], "integrations.list").await
     }
 
@@ -49,7 +49,7 @@ impl IntegrationsResource {
         slug: &str,
         payload: &serde_json::Value,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/integrations/{}", project_id, slug);
+        let path = format!("projects/{project_id}/integrations/{slug}");
         self.http.put(&path, payload, "integrations.update").await
     }
 
@@ -66,7 +66,7 @@ impl IntegrationsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn disable(&self, project_id: u64, slug: &str) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/integrations/{}", project_id, slug);
+        let path = format!("projects/{project_id}/integrations/{slug}");
         self.http.delete(&path, &[], "integrations.disable").await
     }
 }

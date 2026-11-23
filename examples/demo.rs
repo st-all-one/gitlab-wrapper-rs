@@ -1,5 +1,6 @@
+//! Exemplo demonstrativo: exige `GITLAB_TOKEN` para executar.
 use gitlab_wrapper::{
-    AuthMethod, GitLabClient, GitLabConfig,
+    AuthMethod, GitLabClient, GitLabConfig, GitLabError,
     oauth::{self, AuthCodeUrlOptions},
 };
 
@@ -11,7 +12,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = GitLabClient::new(GitLabConfig {
         base_url: std::env::var("GITLAB_URL").unwrap_or_else(|_| "https://gitlab.com".into()),
         token: Some(
-            std::env::var("GITLAB_TOKEN").expect("GITLAB_TOKEN environment variable required"),
+            std::env::var("GITLAB_TOKEN")
+                .map_err(|_| GitLabError::Config("GITLAB_TOKEN required".into()))?,
         ),
         auth_method: Some(AuthMethod::Bearer),
         ..Default::default()
@@ -44,7 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("Merge requests (global): {}", mrs.len());
 
     // ── oauth helpers ───────────────────────────────────────────────────
-    let verifier = oauth::generate_code_verifier();
+    let verifier = oauth::generate_code_verifier()?;
     let challenge = oauth::generate_code_challenge(&verifier);
     let auth_url = oauth::authorization_code_url(&AuthCodeUrlOptions {
         base_url: "https://gitlab.com".into(),

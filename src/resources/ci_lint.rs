@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CiLintPayload, CiLintResult};
 use std::sync::Arc;
 
 /// Recurso de API para validação de CI/CD (CI Lint).
@@ -10,7 +10,7 @@ pub struct CiLintResource {
 }
 
 impl CiLintResource {
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,7 +33,7 @@ impl CiLintResource {
         project_id: u64,
         payload: &CiLintPayload,
     ) -> Result<CiLintResult, GitLabError> {
-        let path = format!("projects/{}/ci/lint", project_id);
+        let path = format!("projects/{project_id}/ci/lint");
         self.http.post(&path, payload, "ci_lint.validate").await
     }
 }

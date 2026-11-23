@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{Branch, CreateBranchPayload};
 use crate::utils::encoding::encode_query_param;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct BranchesResource {
 
 impl BranchesResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -28,7 +28,7 @@ impl BranchesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list(&self, project_id: u64) -> Result<Vec<Branch>, GitLabError> {
-        let path = format!("projects/{}/repository/branches", project_id);
+        let path = format!("projects/{project_id}/repository/branches");
         self.http.get(&path, &[], "branches.list").await
     }
 
@@ -45,8 +45,11 @@ impl BranchesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, branch: &str) -> Result<Branch, GitLabError> {
-        let path =
-            format!("projects/{}/repository/branches/{}", project_id, encode_query_param(branch));
+        let path = format!(
+            "projects/{}/repository/branches/{}",
+            project_id,
+            encode_query_param(branch)
+        );
         self.http.get(&path, &[], "branches.get").await
     }
 
@@ -67,7 +70,7 @@ impl BranchesResource {
         project_id: u64,
         payload: &CreateBranchPayload,
     ) -> Result<Branch, GitLabError> {
-        let path = format!("projects/{}/repository/branches", project_id);
+        let path = format!("projects/{project_id}/repository/branches");
         self.http.post(&path, &payload, "branches.create").await
     }
 
@@ -84,8 +87,11 @@ impl BranchesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64, branch: &str) -> Result<(), GitLabError> {
-        let path =
-            format!("projects/{}/repository/branches/{}", project_id, encode_query_param(branch));
+        let path = format!(
+            "projects/{}/repository/branches/{}",
+            project_id,
+            encode_query_param(branch)
+        );
         self.http.delete(&path, &[], "branches.delete").await
     }
 
@@ -101,7 +107,7 @@ impl BranchesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete_merged(&self, project_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/repository/merged_branches", project_id);
+        let path = format!("projects/{project_id}/repository/merged_branches");
         self.http.delete(&path, &[], "branches.delete_merged").await
     }
 }

@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateDeployKeyPayload, DeployKey, UpdateDeployKeyPayload};
 use std::sync::Arc;
 
 /// Recurso de API para operações com chaves de deploy no GitLab.
@@ -11,7 +11,7 @@ pub struct DeployKeysResource {
 
 impl DeployKeysResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -27,7 +27,7 @@ impl DeployKeysResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list(&self, project_id: u64) -> Result<Vec<DeployKey>, GitLabError> {
-        let path = format!("projects/{}/deploy_keys", project_id);
+        let path = format!("projects/{project_id}/deploy_keys");
         self.http.get(&path, &[], "deploy_keys.list").await
     }
 
@@ -44,7 +44,7 @@ impl DeployKeysResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, key_id: u64) -> Result<DeployKey, GitLabError> {
-        let path = format!("projects/{}/deploy_keys/{}", project_id, key_id);
+        let path = format!("projects/{project_id}/deploy_keys/{key_id}");
         self.http.get(&path, &[], "deploy_keys.get").await
     }
 
@@ -65,7 +65,7 @@ impl DeployKeysResource {
         project_id: u64,
         payload: &CreateDeployKeyPayload,
     ) -> Result<DeployKey, GitLabError> {
-        let path = format!("projects/{}/deploy_keys", project_id);
+        let path = format!("projects/{project_id}/deploy_keys");
         self.http.post(&path, &payload, "deploy_keys.create").await
     }
 
@@ -82,7 +82,7 @@ impl DeployKeysResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64, key_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/deploy_keys/{}", project_id, key_id);
+        let path = format!("projects/{project_id}/deploy_keys/{key_id}");
         self.http.delete(&path, &[], "deploy_keys.delete").await
     }
 
@@ -105,7 +105,7 @@ impl DeployKeysResource {
         key_id: u64,
         payload: &UpdateDeployKeyPayload,
     ) -> Result<DeployKey, GitLabError> {
-        let path = format!("projects/{}/deploy_keys/{}", project_id, key_id);
+        let path = format!("projects/{project_id}/deploy_keys/{key_id}");
         self.http.put(&path, &payload, "deploy_keys.update").await
     }
 
@@ -122,7 +122,9 @@ impl DeployKeysResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn enable(&self, project_id: u64, key_id: u64) -> Result<DeployKey, GitLabError> {
-        let path = format!("projects/{}/deploy_keys/{}/enable", project_id, key_id);
-        self.http.post(&path, &serde_json::json!({}), "deploy_keys.enable").await
+        let path = format!("projects/{project_id}/deploy_keys/{key_id}/enable");
+        self.http
+            .post(&path, &serde_json::json!({}), "deploy_keys.enable")
+            .await
     }
 }

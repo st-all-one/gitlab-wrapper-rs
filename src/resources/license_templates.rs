@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{Template, TemplateFilter};
 use crate::utils::encoding::{encode_query_param, filter_to_query};
 use std::sync::Arc;
 
@@ -11,7 +11,7 @@ pub struct LicenseTemplatesResource {
 }
 
 impl LicenseTemplatesResource {
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 

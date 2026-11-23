@@ -4,8 +4,8 @@
 //! [`ErrorContext`] (metadados adicionais sobre a falha) e [`GitLabError`]
 //! (enum principal de erro com suporte a `thiserror`).
 
+use crate::core::telemetry::error_instance;
 use std::fmt;
-use uuid::Uuid;
 
 /// Categoria de erro da API do GitLab.
 ///
@@ -50,7 +50,8 @@ impl ErrorCategory {
     ///
     /// ## Returns
     /// `Option<ErrorCategory>` — `None` se o status não estiver mapeado.
-    pub fn from_status(status: u16) -> Option<Self> {
+    #[must_use]
+    pub const fn from_status(status: u16) -> Option<Self> {
         match status {
             304 => Some(Self::NotModified),
             400 => Some(Self::SpamDetected),
@@ -71,7 +72,8 @@ impl ErrorCategory {
     ///
     /// ## Returns
     /// `u16` — código de status HTTP.
-    pub fn http_status(&self) -> u16 {
+    #[must_use]
+    pub const fn http_status(&self) -> u16 {
         match self {
             Self::NotModified => 304,
             Self::SpamDetected => 400,
@@ -91,7 +93,8 @@ impl ErrorCategory {
     ///
     /// ## Returns
     /// `&'static str` — identificador em formato kebab-case.
-    pub fn description(&self) -> &'static str {
+    #[must_use]
+    pub const fn description(&self) -> &'static str {
         match self {
             Self::AuthenticationFailed => "authentication-failed",
             Self::AuthorizationDenied => "authorization-denied",
@@ -209,8 +212,14 @@ impl GitLabError {
         detail: impl Into<String>,
         context: ErrorContext,
     ) -> Self {
-        let instance = Uuid::new_v7(uuid::Timestamp::now(uuid::NoContext)).to_string();
-        Self::Api { category, status, detail: detail.into(), instance, context: Box::new(context) }
+        let instance = error_instance();
+        Self::Api {
+            category,
+            status,
+            detail: detail.into(),
+            instance,
+            context: Box::new(context),
+        }
     }
 
     /// Extrai a [`ErrorCategory`] do erro, se aplicável.
@@ -218,6 +227,7 @@ impl GitLabError {
     /// ## Returns
     /// `Option<ErrorCategory>` — categoria classificada, ou `None` se o erro não
     /// for classificado em nenhuma categoria conhecida.
+    #[must_use]
     pub fn category(&self) -> Option<ErrorCategory> {
         match self {
             Self::Api { category, .. } => Some(*category),
@@ -225,9 +235,9 @@ impl GitLabError {
             Self::Timeout { .. } => Some(ErrorCategory::Timeout),
             Self::Http(e) if e.is_timeout() => Some(ErrorCategory::Timeout),
             Self::Http(e) if e.is_connect() => Some(ErrorCategory::NetworkError),
-            Self::Http(e) if e.is_status() => {
-                e.status().and_then(|s| ErrorCategory::from_status(s.as_u16()))
-            }
+            Self::Http(e) if e.is_status() => e
+                .status()
+                .and_then(|s| ErrorCategory::from_status(s.as_u16())),
             _ => None,
         }
     }
@@ -258,10 +268,22 @@ mod tests {
 
     #[test]
     fn test_error_category_from_status() {
-        assert_eq!(ErrorCategory::from_status(304), Some(ErrorCategory::NotModified));
-        assert_eq!(ErrorCategory::from_status(401), Some(ErrorCategory::AuthenticationFailed));
-        assert_eq!(ErrorCategory::from_status(404), Some(ErrorCategory::ResourceNotFound));
-        assert_eq!(ErrorCategory::from_status(429), Some(ErrorCategory::RateLimited));
+        assert_eq!(
+            ErrorCategory::from_status(304),
+            Some(ErrorCategory::NotModified)
+        );
+        assert_eq!(
+            ErrorCategory::from_status(401),
+            Some(ErrorCategory::AuthenticationFailed)
+        );
+        assert_eq!(
+            ErrorCategory::from_status(404),
+            Some(ErrorCategory::ResourceNotFound)
+        );
+        assert_eq!(
+            ErrorCategory::from_status(429),
+            Some(ErrorCategory::RateLimited)
+        );
         assert_eq!(ErrorCategory::from_status(200), None);
     }
 
@@ -281,8 +303,14 @@ mod tests {
 
     #[test]
     fn test_error_category_display() {
-        assert_eq!(ErrorCategory::AuthenticationFailed.to_string(), "authentication-failed");
-        assert_eq!(ErrorCategory::ResourceNotFound.to_string(), "resource-not-found");
+        assert_eq!(
+            ErrorCategory::AuthenticationFailed.to_string(),
+            "authentication-failed"
+        );
+        assert_eq!(
+            ErrorCategory::ResourceNotFound.to_string(),
+            "resource-not-found"
+        );
     }
 
     #[test]
@@ -298,7 +326,12 @@ mod tests {
             },
         );
         match err {
-            GitLabError::Api { category, status, detail, .. } => {
+            GitLabError::Api {
+                category,
+                status,
+                detail,
+                ..
+            } => {
                 assert_eq!(category, ErrorCategory::ResourceNotFound);
                 assert_eq!(status, 404);
                 assert_eq!(detail, "test error");
@@ -309,8 +342,12 @@ mod tests {
 
     #[test]
     fn test_api_error_has_instance_id() {
-        let err =
-            GitLabError::api(ErrorCategory::InternalError, 500, "fail", ErrorContext::default());
+        let err = GitLabError::api(
+            ErrorCategory::InternalError,
+            500,
+            "fail",
+            ErrorContext::default(),
+        );
         match err {
             GitLabError::Api { instance, .. } => {
                 assert!(!instance.is_empty(), "instance UUID must not be empty");
@@ -322,8 +359,12 @@ mod tests {
 
     #[test]
     fn test_category_extraction() {
-        let api_err =
-            GitLabError::api(ErrorCategory::RateLimited, 429, "too many", ErrorContext::default());
+        let api_err = GitLabError::api(
+            ErrorCategory::RateLimited,
+            429,
+            "too many",
+            ErrorContext::default(),
+        );
         assert_eq!(api_err.category(), Some(ErrorCategory::RateLimited));
 
         let config_err = GitLabError::Config("bad config".into());

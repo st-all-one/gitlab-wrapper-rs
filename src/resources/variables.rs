@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CiVariable, CreateCiVariablePayload, UpdateCiVariablePayload, VariableFilter};
 use crate::utils::encoding::{encode_query_param, filter_to_query};
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct VariablesResource {
 
 impl VariablesResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,7 +33,7 @@ impl VariablesResource {
         project_id: u64,
         filter: Option<&VariableFilter>,
     ) -> Result<Vec<CiVariable>, GitLabError> {
-        let path = format!("projects/{}/variables", project_id);
+        let path = format!("projects/{project_id}/variables");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "variables.list").await
     }
@@ -51,7 +51,11 @@ impl VariablesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, key: &str) -> Result<CiVariable, GitLabError> {
-        let path = format!("projects/{}/variables/{}", project_id, encode_query_param(key));
+        let path = format!(
+            "projects/{}/variables/{}",
+            project_id,
+            encode_query_param(key)
+        );
         self.http.get(&path, &[], "variables.get").await
     }
 
@@ -72,7 +76,7 @@ impl VariablesResource {
         project_id: u64,
         payload: &CreateCiVariablePayload,
     ) -> Result<CiVariable, GitLabError> {
-        let path = format!("projects/{}/variables", project_id);
+        let path = format!("projects/{project_id}/variables");
         self.http.post(&path, payload, "variables.create").await
     }
 
@@ -95,7 +99,11 @@ impl VariablesResource {
         key: &str,
         payload: &UpdateCiVariablePayload,
     ) -> Result<CiVariable, GitLabError> {
-        let path = format!("projects/{}/variables/{}", project_id, encode_query_param(key));
+        let path = format!(
+            "projects/{}/variables/{}",
+            project_id,
+            encode_query_param(key)
+        );
         self.http.put(&path, payload, "variables.update").await
     }
 
@@ -112,7 +120,11 @@ impl VariablesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64, key: &str) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/variables/{}", project_id, encode_query_param(key));
+        let path = format!(
+            "projects/{}/variables/{}",
+            project_id,
+            encode_query_param(key)
+        );
         self.http.delete(&path, &[], "variables.delete").await
     }
 }

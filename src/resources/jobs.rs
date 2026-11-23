@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{Job, JobFilter};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct JobsResource {
 
 impl JobsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,7 +33,7 @@ impl JobsResource {
         project_id: u64,
         filter: Option<&JobFilter>,
     ) -> Result<Vec<Job>, GitLabError> {
-        let path = format!("projects/{}/jobs", project_id);
+        let path = format!("projects/{project_id}/jobs");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "jobs.list").await
     }
@@ -57,7 +57,7 @@ impl JobsResource {
         pipeline_id: u64,
         filter: Option<&JobFilter>,
     ) -> Result<Vec<Job>, GitLabError> {
-        let path = format!("projects/{}/pipelines/{}/jobs", project_id, pipeline_id);
+        let path = format!("projects/{project_id}/pipelines/{pipeline_id}/jobs");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "jobs.list_by_pipeline").await
     }
@@ -75,7 +75,7 @@ impl JobsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, job_id: u64) -> Result<Job, GitLabError> {
-        let path = format!("projects/{}/jobs/{}", project_id, job_id);
+        let path = format!("projects/{project_id}/jobs/{job_id}");
         self.http.get(&path, &[], "jobs.get").await
     }
 
@@ -92,7 +92,7 @@ impl JobsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn trace(&self, project_id: u64, job_id: u64) -> Result<String, GitLabError> {
-        let path = format!("projects/{}/jobs/{}/trace", project_id, job_id);
+        let path = format!("projects/{project_id}/jobs/{job_id}/trace");
         self.http.get_raw_text(&path, &[], "jobs.trace").await
     }
 
@@ -109,8 +109,10 @@ impl JobsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn cancel(&self, project_id: u64, job_id: u64) -> Result<Job, GitLabError> {
-        let path = format!("projects/{}/jobs/{}/cancel", project_id, job_id);
-        self.http.post(&path, &serde_json::json!({}), "jobs.cancel").await
+        let path = format!("projects/{project_id}/jobs/{job_id}/cancel");
+        self.http
+            .post(&path, &serde_json::json!({}), "jobs.cancel")
+            .await
     }
 
     /// Tenta novamente um job com falha.
@@ -126,8 +128,10 @@ impl JobsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn retry(&self, project_id: u64, job_id: u64) -> Result<Job, GitLabError> {
-        let path = format!("projects/{}/jobs/{}/retry", project_id, job_id);
-        self.http.post(&path, &serde_json::json!({}), "jobs.retry").await
+        let path = format!("projects/{project_id}/jobs/{job_id}/retry");
+        self.http
+            .post(&path, &serde_json::json!({}), "jobs.retry")
+            .await
     }
 
     /// Executa um job manual (ação "play").
@@ -143,8 +147,10 @@ impl JobsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn play(&self, project_id: u64, job_id: u64) -> Result<Job, GitLabError> {
-        let path = format!("projects/{}/jobs/{}/play", project_id, job_id);
-        self.http.post(&path, &serde_json::json!({}), "jobs.play").await
+        let path = format!("projects/{project_id}/jobs/{job_id}/play");
+        self.http
+            .post(&path, &serde_json::json!({}), "jobs.play")
+            .await
     }
 
     /// Apaga o log (trace) de um job.
@@ -160,8 +166,10 @@ impl JobsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn erase(&self, project_id: u64, job_id: u64) -> Result<Job, GitLabError> {
-        let path = format!("projects/{}/jobs/{}/erase", project_id, job_id);
-        self.http.post(&path, &serde_json::json!({}), "jobs.erase").await
+        let path = format!("projects/{project_id}/jobs/{job_id}/erase");
+        self.http
+            .post(&path, &serde_json::json!({}), "jobs.erase")
+            .await
     }
 
     /// Obtém os artefatos de um job.
@@ -177,7 +185,7 @@ impl JobsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn artifacts(&self, project_id: u64, job_id: u64) -> Result<Vec<u8>, GitLabError> {
-        let path = format!("projects/{}/jobs/{}/artifacts", project_id, job_id);
+        let path = format!("projects/{project_id}/jobs/{job_id}/artifacts");
         self.http.get_raw(&path, &[], "jobs.artifacts").await
     }
 }

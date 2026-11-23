@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{Event, EventFilter};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct EventsResource {
 
 impl EventsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -49,7 +49,7 @@ impl EventsResource {
         user_id: u64,
         filter: Option<&EventFilter>,
     ) -> Result<Vec<Event>, GitLabError> {
-        let path = format!("users/{}/events", user_id);
+        let path = format!("users/{user_id}/events");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "events.list_user").await
     }
@@ -71,7 +71,7 @@ impl EventsResource {
         project_id: u64,
         filter: Option<&EventFilter>,
     ) -> Result<Vec<Event>, GitLabError> {
-        let path = format!("projects/{}/events", project_id);
+        let path = format!("projects/{project_id}/events");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "events.list_project").await
     }

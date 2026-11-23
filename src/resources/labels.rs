@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateLabelPayload, GroupLabel, Label, UpdateLabelPayload};
 use crate::utils::encoding::encode_query_param;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct LabelsResource {
 
 impl LabelsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -28,7 +28,7 @@ impl LabelsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list_project_labels(&self, project_id: u64) -> Result<Vec<Label>, GitLabError> {
-        let path = format!("projects/{}/labels", project_id);
+        let path = format!("projects/{project_id}/labels");
         self.http.get(&path, &[], "labels.list_project").await
     }
 
@@ -49,7 +49,7 @@ impl LabelsResource {
         project_id: u64,
         label_id: u64,
     ) -> Result<Label, GitLabError> {
-        let path = format!("projects/{}/labels/{}", project_id, label_id);
+        let path = format!("projects/{project_id}/labels/{label_id}");
         self.http.get(&path, &[], "labels.get_project").await
     }
 
@@ -70,8 +70,10 @@ impl LabelsResource {
         project_id: u64,
         payload: &CreateLabelPayload,
     ) -> Result<Label, GitLabError> {
-        let path = format!("projects/{}/labels", project_id);
-        self.http.post(&path, &payload, "labels.create_project").await
+        let path = format!("projects/{project_id}/labels");
+        self.http
+            .post(&path, &payload, "labels.create_project")
+            .await
     }
 
     /// Atualiza uma label de projeto.
@@ -91,8 +93,10 @@ impl LabelsResource {
         project_id: u64,
         payload: &UpdateLabelPayload,
     ) -> Result<Label, GitLabError> {
-        let path = format!("projects/{}/labels", project_id);
-        self.http.put(&path, &payload, "labels.update_project").await
+        let path = format!("projects/{project_id}/labels");
+        self.http
+            .put(&path, &payload, "labels.update_project")
+            .await
     }
 
     /// Remove uma label de projeto pelo nome.
@@ -112,7 +116,11 @@ impl LabelsResource {
         project_id: u64,
         name: &str,
     ) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/labels/{}", project_id, encode_query_param(name));
+        let path = format!(
+            "projects/{}/labels/{}",
+            project_id,
+            encode_query_param(name)
+        );
         self.http.delete(&path, &[], "labels.delete_project").await
     }
 
@@ -133,8 +141,14 @@ impl LabelsResource {
         project_id: u64,
         name: &str,
     ) -> Result<GroupLabel, GitLabError> {
-        let path = format!("projects/{}/labels/{}/promote", project_id, encode_query_param(name));
-        self.http.put(&path, &serde_json::json!({}), "labels.promote_project").await
+        let path = format!(
+            "projects/{}/labels/{}/promote",
+            project_id,
+            encode_query_param(name)
+        );
+        self.http
+            .put(&path, &serde_json::json!({}), "labels.promote_project")
+            .await
     }
 
     /// Lista labels de um grupo.
@@ -149,7 +163,7 @@ impl LabelsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list_group_labels(&self, group_id: u64) -> Result<Vec<GroupLabel>, GitLabError> {
-        let path = format!("groups/{}/labels", group_id);
+        let path = format!("groups/{group_id}/labels");
         self.http.get(&path, &[], "labels.list_group").await
     }
 
@@ -170,7 +184,7 @@ impl LabelsResource {
         group_id: u64,
         label_id: u64,
     ) -> Result<GroupLabel, GitLabError> {
-        let path = format!("groups/{}/labels/{}", group_id, label_id);
+        let path = format!("groups/{group_id}/labels/{label_id}");
         self.http.get(&path, &[], "labels.get_group").await
     }
 
@@ -191,7 +205,7 @@ impl LabelsResource {
         group_id: u64,
         payload: &CreateLabelPayload,
     ) -> Result<GroupLabel, GitLabError> {
-        let path = format!("groups/{}/labels", group_id);
+        let path = format!("groups/{group_id}/labels");
         self.http.post(&path, &payload, "labels.create_group").await
     }
 
@@ -212,7 +226,7 @@ impl LabelsResource {
         group_id: u64,
         payload: &UpdateLabelPayload,
     ) -> Result<GroupLabel, GitLabError> {
-        let path = format!("groups/{}/labels", group_id);
+        let path = format!("groups/{group_id}/labels");
         self.http.put(&path, &payload, "labels.update_group").await
     }
 

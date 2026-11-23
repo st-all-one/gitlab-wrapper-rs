@@ -1,4 +1,4 @@
-use crate::types::base::*;
+use crate::types::base::{AuthorInfo, GitLabId};
 use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando um agendamento de pipeline.
@@ -42,7 +42,7 @@ pub struct PipelineScheduleVariable {
     pub key: Option<String>,
     /// Valor da variável.
     pub value: Option<String>,
-    /// Tipo da variável (env_var, file).
+    /// Tipo da variável (`env_var`, file).
     pub variable_type: Option<String>,
 }
 

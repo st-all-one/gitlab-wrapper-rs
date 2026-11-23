@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{Badge, CreateBadgePayload, UpdateBadgePayload};
 use std::sync::Arc;
 
 /// Recurso de API para operações com badges (emblemas) de projetos e grupos no GitLab.
@@ -11,7 +11,7 @@ pub struct BadgesResource {
 
 impl BadgesResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -27,7 +27,7 @@ impl BadgesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list_project_badges(&self, project_id: u64) -> Result<Vec<Badge>, GitLabError> {
-        let path = format!("projects/{}/badges", project_id);
+        let path = format!("projects/{project_id}/badges");
         self.http.get(&path, &[], "badges.list_project").await
     }
 
@@ -48,7 +48,7 @@ impl BadgesResource {
         project_id: u64,
         badge_id: u64,
     ) -> Result<Badge, GitLabError> {
-        let path = format!("projects/{}/badges/{}", project_id, badge_id);
+        let path = format!("projects/{project_id}/badges/{badge_id}");
         self.http.get(&path, &[], "badges.get_project").await
     }
 
@@ -69,8 +69,10 @@ impl BadgesResource {
         project_id: u64,
         payload: &CreateBadgePayload,
     ) -> Result<Badge, GitLabError> {
-        let path = format!("projects/{}/badges", project_id);
-        self.http.post(&path, &payload, "badges.create_project").await
+        let path = format!("projects/{project_id}/badges");
+        self.http
+            .post(&path, &payload, "badges.create_project")
+            .await
     }
 
     /// Atualiza um badge de projeto.
@@ -92,8 +94,10 @@ impl BadgesResource {
         badge_id: u64,
         payload: &UpdateBadgePayload,
     ) -> Result<Badge, GitLabError> {
-        let path = format!("projects/{}/badges/{}", project_id, badge_id);
-        self.http.put(&path, &payload, "badges.update_project").await
+        let path = format!("projects/{project_id}/badges/{badge_id}");
+        self.http
+            .put(&path, &payload, "badges.update_project")
+            .await
     }
 
     /// Remove um badge de um projeto.
@@ -113,7 +117,7 @@ impl BadgesResource {
         project_id: u64,
         badge_id: u64,
     ) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/badges/{}", project_id, badge_id);
+        let path = format!("projects/{project_id}/badges/{badge_id}");
         self.http.delete(&path, &[], "badges.delete_project").await
     }
 
@@ -129,7 +133,7 @@ impl BadgesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list_group_badges(&self, group_id: u64) -> Result<Vec<Badge>, GitLabError> {
-        let path = format!("groups/{}/badges", group_id);
+        let path = format!("groups/{group_id}/badges");
         self.http.get(&path, &[], "badges.list_group").await
     }
 
@@ -150,7 +154,7 @@ impl BadgesResource {
         group_id: u64,
         badge_id: u64,
     ) -> Result<Badge, GitLabError> {
-        let path = format!("groups/{}/badges/{}", group_id, badge_id);
+        let path = format!("groups/{group_id}/badges/{badge_id}");
         self.http.get(&path, &[], "badges.get_group").await
     }
 
@@ -171,7 +175,7 @@ impl BadgesResource {
         group_id: u64,
         payload: &CreateBadgePayload,
     ) -> Result<Badge, GitLabError> {
-        let path = format!("groups/{}/badges", group_id);
+        let path = format!("groups/{group_id}/badges");
         self.http.post(&path, &payload, "badges.create_group").await
     }
 
@@ -194,7 +198,7 @@ impl BadgesResource {
         badge_id: u64,
         payload: &UpdateBadgePayload,
     ) -> Result<Badge, GitLabError> {
-        let path = format!("groups/{}/badges/{}", group_id, badge_id);
+        let path = format!("groups/{group_id}/badges/{badge_id}");
         self.http.put(&path, &payload, "badges.update_group").await
     }
 
@@ -215,7 +219,7 @@ impl BadgesResource {
         group_id: u64,
         badge_id: u64,
     ) -> Result<(), GitLabError> {
-        let path = format!("groups/{}/badges/{}", group_id, badge_id);
+        let path = format!("groups/{group_id}/badges/{badge_id}");
         self.http.delete(&path, &[], "badges.delete_group").await
     }
 }

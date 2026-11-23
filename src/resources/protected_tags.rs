@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{ProtectTagPayload, ProtectedTag, ProtectedTagFilter};
 use crate::utils::encoding::{encode_query_param, filter_to_query};
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct ProtectedTagsResource {
 
 impl ProtectedTagsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,7 +33,7 @@ impl ProtectedTagsResource {
         project_id: u64,
         filter: Option<&ProtectedTagFilter>,
     ) -> Result<Vec<ProtectedTag>, GitLabError> {
-        let path = format!("projects/{}/protected_tags", project_id);
+        let path = format!("projects/{project_id}/protected_tags");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "protected_tags.list").await
     }
@@ -51,7 +51,11 @@ impl ProtectedTagsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, name: &str) -> Result<ProtectedTag, GitLabError> {
-        let path = format!("projects/{}/protected_tags/{}", project_id, encode_query_param(name));
+        let path = format!(
+            "projects/{}/protected_tags/{}",
+            project_id,
+            encode_query_param(name)
+        );
         self.http.get(&path, &[], "protected_tags.get").await
     }
 
@@ -72,8 +76,10 @@ impl ProtectedTagsResource {
         project_id: u64,
         payload: &ProtectTagPayload,
     ) -> Result<ProtectedTag, GitLabError> {
-        let path = format!("projects/{}/protected_tags", project_id);
-        self.http.post(&path, payload, "protected_tags.protect").await
+        let path = format!("projects/{project_id}/protected_tags");
+        self.http
+            .post(&path, payload, "protected_tags.protect")
+            .await
     }
 
     /// Remove a proteção de uma tag.
@@ -89,7 +95,13 @@ impl ProtectedTagsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn unprotect(&self, project_id: u64, name: &str) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/protected_tags/{}", project_id, encode_query_param(name));
-        self.http.delete(&path, &[], "protected_tags.unprotect").await
+        let path = format!(
+            "projects/{}/protected_tags/{}",
+            project_id,
+            encode_query_param(name)
+        );
+        self.http
+            .delete(&path, &[], "protected_tags.unprotect")
+            .await
     }
 }

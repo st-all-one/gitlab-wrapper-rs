@@ -17,7 +17,7 @@ pub struct Runner {
     pub paused: Option<bool>,
     /// Indica se o runner é compartilhado entre projetos.
     pub is_shared: Option<bool>,
-    /// Tipo do runner (instance_type, group_type, project_type).
+    /// Tipo do runner (`instance_type`, `group_type`, `project_type`).
     pub runner_type: Option<String>,
     /// Status do runner (online, offline, paused, etc.).
     pub status: Option<String>,
@@ -63,7 +63,7 @@ pub struct RunnerProject {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct CreateRunnerPayload {
-    /// Tipo do runner (instance_type, group_type, project_type).
+    /// Tipo do runner (`instance_type`, `group_type`, `project_type`).
     pub runner_type: String,
     /// Descrição do runner.
     #[serde(skip_serializing_if = "Option::is_none")]

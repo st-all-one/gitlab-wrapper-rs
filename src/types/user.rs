@@ -1,4 +1,4 @@
-use crate::types::base::*;
+use crate::types::base::GitLabId;
 use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando um usuário.
@@ -29,7 +29,7 @@ pub struct User {
     pub public_email: Option<String>,
     /// Nome de usuário no Skype.
     pub skype: Option<String>,
-    /// Nome de usuário no LinkedIn.
+    /// Nome de usuário no `LinkedIn`.
     pub linkedin: Option<String>,
     /// Nome de usuário no Twitter.
     pub twitter: Option<String>,

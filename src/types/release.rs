@@ -1,4 +1,4 @@
-use crate::types::base::*;
+use crate::types::base::{AuthorInfo, GitLabId};
 use crate::types::branch::BranchCommit;
 use serde::{Deserialize, Serialize};
 
@@ -29,6 +29,8 @@ pub struct Release {
     /// Evidências da release.
     pub evidences: Option<Vec<ReleaseEvidence>>,
     /// Links relacionados à release.
+    // Nome imposto pela API GitLab (`_links`); não é campo ignorado.
+    #[allow(clippy::pub_underscore_fields)]
     pub _links: Option<ReleaseLinks>,
 }
 

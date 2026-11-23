@@ -5,7 +5,7 @@
 **Wrapper Rust tipado para a API REST do GitLab v4 — assíncrono, seguro, zero custo**
 
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-2b3a42?style=for-the-badge)](https://opensource.org/licenses/MPL-2.0)
-[![Rust](https://img.shields.io/badge/Rust-1.85%2B-000000?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org)
+[![Rust](https://img.shields.io/badge/Rust-1.100%2B-000000?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Made in Brazil](https://img.shields.io/badge/Made_in-Brazil-009739?style=for-the-badge)](https://github.com/topics/brazil)
 
 </div>
@@ -329,16 +329,28 @@ RUST_LOG=gitlab_wrapper=debug cargo run
 ## 🔍 Testes
 
 ```bash
-cargo test                       # 36 testes (unitários + integração com wiremock)
+make check                   # fmt --check + clippy + testes (zero warnings)
+make test                    # suíte completa (unitários + wiremock)
+make bench                   # benchmarks de encoding (criterion)
+
+cargo test --locked          # como executado na CI
 cargo test --test client_test    # testes do cliente HTTP
 cargo test --test errors_test    # testes do sistema de erros
 cargo test --test oauth_test     # testes OAuth (PKCE, auth URL)
-cargo clippy                     # lints (0 warnings)
+```
 
 # Teste de integração real contra GitLab.com:
+```bash
 export GITLAB_TOKEN="glpat-xxxx"
 cargo run --example comprehensive_test  # 152 testes
 ```
+
+### Toolchain e MSRV
+
+A toolchain é fixada em `rust-toolchain.toml` (Rust **1.100**, componentes `clippy` e `rustfmt`).
+O mesmo valor aparece em `Cargo.toml` (`rust-version = "1.100"`) e em `clippy.toml` (`msrv = "1.100"`).
+O CI roda `make check` e `cargo test --locked` com `RUSTFLAGS="-D warnings"`; a política de supply
+chain em `.cargo/config.toml` (`min-publish-age = "7 days"`) evita resolver versões recém-publicadas.
 
 ```
 ❯ cargo test
@@ -352,7 +364,7 @@ test result: ok. 36 passed; 0 failed
 
 | Componente | Tecnologia |
 |---|---|
-| Runtime | Rust 1.85+ (edition 2024) |
+| Runtime | Rust 1.100+ (edition 2024, MSRV contratual) |
 | Async | `tokio` (sync, time) |
 | HTTP | `reqwest` 0.12 (async, rustls-tls) |
 | Serialização | `serde` + `serde_json` |
@@ -402,7 +414,7 @@ esporadicamente, então isso raramente é um problema.
 
 ## 📋 Pré-requisitos
 
-- **Rust 1.85+** (edição 2024) — verifique com `rustc --version`
+- **Rust 1.100+** (edição 2024, MSRV fixa em `rust-toolchain.toml`) — verifique com `rustc --version`
 - **Token de acesso GitLab** — [Personal Access Token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html) com escopos `api` ou `read_api`
 
 ---

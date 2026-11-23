@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateIssueLinkPayload, IssueLink};
 use std::sync::Arc;
 
 /// Recurso de API para operações com links entre issues no GitLab.
@@ -11,7 +11,7 @@ pub struct IssueLinksResource {
 
 impl IssueLinksResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -32,7 +32,7 @@ impl IssueLinksResource {
         project_id: u64,
         issue_iid: u32,
     ) -> Result<Vec<IssueLink>, GitLabError> {
-        let path = format!("projects/{}/issues/{}/links", project_id, issue_iid);
+        let path = format!("projects/{project_id}/issues/{issue_iid}/links");
         self.http.get(&path, &[], "issue_links.list").await
     }
 
@@ -55,7 +55,7 @@ impl IssueLinksResource {
         issue_iid: u32,
         payload: &CreateIssueLinkPayload,
     ) -> Result<IssueLink, GitLabError> {
-        let path = format!("projects/{}/issues/{}/links", project_id, issue_iid);
+        let path = format!("projects/{project_id}/issues/{issue_iid}/links");
         self.http.post(&path, &payload, "issue_links.create").await
     }
 
@@ -78,7 +78,7 @@ impl IssueLinksResource {
         issue_iid: u32,
         link_id: u64,
     ) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/issues/{}/links/{}", project_id, issue_iid, link_id);
+        let path = format!("projects/{project_id}/issues/{issue_iid}/links/{link_id}");
         self.http.delete(&path, &[], "issue_links.delete").await
     }
 }

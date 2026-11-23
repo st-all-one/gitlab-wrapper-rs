@@ -1,6 +1,9 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{
+    AuthorInfo, CreateIssuePayload, Issue, IssueFilter, IssueMinimal, MergeRequest,
+    UpdateIssuePayload,
+};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +15,7 @@ pub struct IssuesResource {
 
 impl IssuesResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -49,9 +52,11 @@ impl IssuesResource {
         project_id: u64,
         filter: Option<&IssueFilter>,
     ) -> Result<Vec<Issue>, GitLabError> {
-        let path = format!("projects/{}/issues", project_id);
+        let path = format!("projects/{project_id}/issues");
         let query = filter_to_query(filter);
-        self.http.get(&path, &query, "issues.list_for_project").await
+        self.http
+            .get(&path, &query, "issues.list_for_project")
+            .await
     }
 
     /// Obtém uma issue pelo ID do projeto e IID da issue.
@@ -67,7 +72,7 @@ impl IssuesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, issue_iid: u32) -> Result<Issue, GitLabError> {
-        let path = format!("projects/{}/issues/{}", project_id, issue_iid);
+        let path = format!("projects/{project_id}/issues/{issue_iid}");
         self.http.get(&path, &[], "issues.get").await
     }
 
@@ -88,7 +93,7 @@ impl IssuesResource {
         project_id: u64,
         payload: &CreateIssuePayload,
     ) -> Result<Issue, GitLabError> {
-        let path = format!("projects/{}/issues", project_id);
+        let path = format!("projects/{project_id}/issues");
         self.http.post(&path, &payload, "issues.create").await
     }
 
@@ -111,7 +116,7 @@ impl IssuesResource {
         issue_iid: u32,
         payload: &UpdateIssuePayload,
     ) -> Result<Issue, GitLabError> {
-        let path = format!("projects/{}/issues/{}", project_id, issue_iid);
+        let path = format!("projects/{project_id}/issues/{issue_iid}");
         self.http.put(&path, &payload, "issues.update").await
     }
 
@@ -128,7 +133,7 @@ impl IssuesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64, issue_iid: u32) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/issues/{}", project_id, issue_iid);
+        let path = format!("projects/{project_id}/issues/{issue_iid}");
         self.http.delete(&path, &[], "issues.delete").await
     }
 
@@ -149,18 +154,25 @@ impl IssuesResource {
         project_id: u64,
         issue_iid: u32,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/issues/{}/subscribe", project_id, issue_iid);
-        self.http.post(&path, &serde_json::json!({}), "issues.subscribe").await
+        let path = format!("projects/{project_id}/issues/{issue_iid}/subscribe");
+        self.http
+            .post(&path, &serde_json::json!({}), "issues.subscribe")
+            .await
     }
 
     /// Cancela a inscrição em uma issue.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError::Api` ou `GitLabError::Http` se a API ou o transporte falhar.
     pub async fn unsubscribe(
         &self,
         project_id: u64,
         issue_iid: u32,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/issues/{}/unsubscribe", project_id, issue_iid);
-        self.http.post(&path, &serde_json::json!({}), "issues.unsubscribe").await
+        let path = format!("projects/{project_id}/issues/{issue_iid}/unsubscribe");
+        self.http
+            .post(&path, &serde_json::json!({}), "issues.unsubscribe")
+            .await
     }
 
     /// Define uma estimativa de tempo para uma issue.
@@ -182,9 +194,11 @@ impl IssuesResource {
         issue_iid: u32,
         duration: &str,
     ) -> Result<IssueMinimal, GitLabError> {
-        let path = format!("projects/{}/issues/{}/time_estimate", project_id, issue_iid);
+        let path = format!("projects/{project_id}/issues/{issue_iid}/time_estimate");
         let body = serde_json::json!({ "duration": duration });
-        self.http.post(&path, &body, "issues.set_time_estimate").await
+        self.http
+            .post(&path, &body, "issues.set_time_estimate")
+            .await
     }
 
     /// Adiciona tempo gasto a uma issue.
@@ -206,7 +220,7 @@ impl IssuesResource {
         issue_iid: u32,
         duration: &str,
     ) -> Result<IssueMinimal, GitLabError> {
-        let path = format!("projects/{}/issues/{}/add_spent_time", project_id, issue_iid);
+        let path = format!("projects/{project_id}/issues/{issue_iid}/add_spent_time");
         let body = serde_json::json!({ "duration": duration });
         self.http.post(&path, &body, "issues.add_spent_time").await
     }
@@ -228,8 +242,10 @@ impl IssuesResource {
         project_id: u64,
         issue_iid: u32,
     ) -> Result<IssueMinimal, GitLabError> {
-        let path = format!("projects/{}/issues/{}/reset_time_estimate", project_id, issue_iid);
-        self.http.post(&path, &serde_json::json!({}), "issues.reset_time_estimate").await
+        let path = format!("projects/{project_id}/issues/{issue_iid}/reset_time_estimate");
+        self.http
+            .post(&path, &serde_json::json!({}), "issues.reset_time_estimate")
+            .await
     }
 
     /// Redefine o tempo gasto de uma issue.
@@ -249,8 +265,10 @@ impl IssuesResource {
         project_id: u64,
         issue_iid: u32,
     ) -> Result<IssueMinimal, GitLabError> {
-        let path = format!("projects/{}/issues/{}/reset_spent_time", project_id, issue_iid);
-        self.http.post(&path, &serde_json::json!({}), "issues.reset_spent_time").await
+        let path = format!("projects/{project_id}/issues/{issue_iid}/reset_spent_time");
+        self.http
+            .post(&path, &serde_json::json!({}), "issues.reset_spent_time")
+            .await
     }
 
     /// Move uma issue para outro projeto.
@@ -272,7 +290,7 @@ impl IssuesResource {
         issue_iid: u32,
         to_project_id: u64,
     ) -> Result<Issue, GitLabError> {
-        let path = format!("projects/{}/issues/{}/move", project_id, issue_iid);
+        let path = format!("projects/{project_id}/issues/{issue_iid}/move");
         let body = serde_json::json!({ "to_project_id": to_project_id });
         self.http.post(&path, &body, "issues.move").await
     }
@@ -294,7 +312,7 @@ impl IssuesResource {
         group_id: u64,
         filter: Option<&IssueFilter>,
     ) -> Result<Vec<Issue>, GitLabError> {
-        let path = format!("groups/{}/issues", group_id);
+        let path = format!("groups/{group_id}/issues");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "issues.get_by_group").await
     }
@@ -320,7 +338,7 @@ impl IssuesResource {
         move_after_id: Option<u64>,
         move_before_id: Option<u64>,
     ) -> Result<Issue, GitLabError> {
-        let path = format!("projects/{}/issues/{}/reorder", project_id, issue_iid);
+        let path = format!("projects/{project_id}/issues/{issue_iid}/reorder");
         let mut body = serde_json::json!({});
         if let Some(id) = move_after_id {
             body["move_after_id"] = serde_json::json!(id);
@@ -348,7 +366,7 @@ impl IssuesResource {
         project_id: u64,
         issue_iid: u32,
     ) -> Result<Vec<AuthorInfo>, GitLabError> {
-        let path = format!("projects/{}/issues/{}/closed_by", project_id, issue_iid);
+        let path = format!("projects/{project_id}/issues/{issue_iid}/closed_by");
         self.http.get(&path, &[], "issues.closed_by").await
     }
 
@@ -369,8 +387,10 @@ impl IssuesResource {
         project_id: u64,
         issue_iid: u32,
     ) -> Result<Vec<MergeRequest>, GitLabError> {
-        let path = format!("projects/{}/issues/{}/related_merge_requests", project_id, issue_iid);
-        self.http.get(&path, &[], "issues.related_merge_requests").await
+        let path = format!("projects/{project_id}/issues/{issue_iid}/related_merge_requests");
+        self.http
+            .get(&path, &[], "issues.related_merge_requests")
+            .await
     }
 
     /// Lista participantes de uma issue.
@@ -390,7 +410,7 @@ impl IssuesResource {
         project_id: u64,
         issue_iid: u32,
     ) -> Result<Vec<AuthorInfo>, GitLabError> {
-        let path = format!("projects/{}/issues/{}/participants", project_id, issue_iid);
+        let path = format!("projects/{project_id}/issues/{issue_iid}/participants");
         self.http.get(&path, &[], "issues.participants").await
     }
 
@@ -411,7 +431,7 @@ impl IssuesResource {
         project_id: u64,
         issue_iid: u32,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/issues/{}/subscription", project_id, issue_iid);
+        let path = format!("projects/{project_id}/issues/{issue_iid}/subscription");
         self.http.get(&path, &[], "issues.subscription").await
     }
 }

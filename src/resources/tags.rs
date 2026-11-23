@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateTagPayload, Tag};
 use crate::utils::encoding::encode_query_param;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct TagsResource {
 
 impl TagsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -28,7 +28,7 @@ impl TagsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list(&self, project_id: u64) -> Result<Vec<Tag>, GitLabError> {
-        let path = format!("projects/{}/repository/tags", project_id);
+        let path = format!("projects/{project_id}/repository/tags");
         self.http.get(&path, &[], "tags.list").await
     }
 
@@ -45,7 +45,11 @@ impl TagsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, tag: &str) -> Result<Tag, GitLabError> {
-        let path = format!("projects/{}/repository/tags/{}", project_id, encode_query_param(tag));
+        let path = format!(
+            "projects/{}/repository/tags/{}",
+            project_id,
+            encode_query_param(tag)
+        );
         self.http.get(&path, &[], "tags.get").await
     }
 
@@ -66,7 +70,7 @@ impl TagsResource {
         project_id: u64,
         payload: &CreateTagPayload,
     ) -> Result<Tag, GitLabError> {
-        let path = format!("projects/{}/repository/tags", project_id);
+        let path = format!("projects/{project_id}/repository/tags");
         self.http.post(&path, &payload, "tags.create").await
     }
 
@@ -83,7 +87,11 @@ impl TagsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64, tag: &str) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/repository/tags/{}", project_id, encode_query_param(tag));
+        let path = format!(
+            "projects/{}/repository/tags/{}",
+            project_id,
+            encode_query_param(tag)
+        );
         self.http.delete(&path, &[], "tags.delete").await
     }
 

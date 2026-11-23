@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateHookPayload, Hook, HookFilter, UpdateHookPayload};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct ProjectHooksResource {
 
 impl ProjectHooksResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,7 +33,7 @@ impl ProjectHooksResource {
         project_id: u64,
         filter: Option<&HookFilter>,
     ) -> Result<Vec<Hook>, GitLabError> {
-        let path = format!("projects/{}/hooks", project_id);
+        let path = format!("projects/{project_id}/hooks");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "project_hooks.list").await
     }
@@ -51,7 +51,7 @@ impl ProjectHooksResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, hook_id: u64) -> Result<Hook, GitLabError> {
-        let path = format!("projects/{}/hooks/{}", project_id, hook_id);
+        let path = format!("projects/{project_id}/hooks/{hook_id}");
         self.http.get(&path, &[], "project_hooks.get").await
     }
 
@@ -72,7 +72,7 @@ impl ProjectHooksResource {
         project_id: u64,
         payload: &CreateHookPayload,
     ) -> Result<Hook, GitLabError> {
-        let path = format!("projects/{}/hooks", project_id);
+        let path = format!("projects/{project_id}/hooks");
         self.http.post(&path, payload, "project_hooks.create").await
     }
 
@@ -95,7 +95,7 @@ impl ProjectHooksResource {
         hook_id: u64,
         payload: &UpdateHookPayload,
     ) -> Result<Hook, GitLabError> {
-        let path = format!("projects/{}/hooks/{}", project_id, hook_id);
+        let path = format!("projects/{project_id}/hooks/{hook_id}");
         self.http.put(&path, payload, "project_hooks.update").await
     }
 
@@ -112,7 +112,7 @@ impl ProjectHooksResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64, hook_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/hooks/{}", project_id, hook_id);
+        let path = format!("projects/{project_id}/hooks/{hook_id}");
         self.http.delete(&path, &[], "project_hooks.delete").await
     }
 }

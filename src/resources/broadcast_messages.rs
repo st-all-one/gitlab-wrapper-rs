@@ -1,6 +1,8 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{
+    BroadcastMessage, CreateBroadcastMessagePayload, UpdateBroadcastMessagePayload,
+};
 use std::sync::Arc;
 
 /// Recurso de API para operações com mensagens broadcast no GitLab.
@@ -11,7 +13,7 @@ pub struct BroadcastMessagesResource {
 
 impl BroadcastMessagesResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -40,7 +42,7 @@ impl BroadcastMessagesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, message_id: u64) -> Result<BroadcastMessage, GitLabError> {
-        let path = format!("broadcast_messages/{}", message_id);
+        let path = format!("broadcast_messages/{message_id}");
         self.http.get(&path, &[], "broadcast_messages.get").await
     }
 
@@ -60,7 +62,9 @@ impl BroadcastMessagesResource {
         payload: &CreateBroadcastMessagePayload,
     ) -> Result<BroadcastMessage, GitLabError> {
         let path = "broadcast_messages".to_string();
-        self.http.post(&path, payload, "broadcast_messages.create").await
+        self.http
+            .post(&path, payload, "broadcast_messages.create")
+            .await
     }
 
     /// Atualiza uma mensagem broadcast existente.
@@ -80,8 +84,10 @@ impl BroadcastMessagesResource {
         message_id: u64,
         payload: &UpdateBroadcastMessagePayload,
     ) -> Result<BroadcastMessage, GitLabError> {
-        let path = format!("broadcast_messages/{}", message_id);
-        self.http.put(&path, payload, "broadcast_messages.update").await
+        let path = format!("broadcast_messages/{message_id}");
+        self.http
+            .put(&path, payload, "broadcast_messages.update")
+            .await
     }
 
     /// Remove uma mensagem broadcast.
@@ -96,7 +102,9 @@ impl BroadcastMessagesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, message_id: u64) -> Result<(), GitLabError> {
-        let path = format!("broadcast_messages/{}", message_id);
-        self.http.delete(&path, &[], "broadcast_messages.delete").await
+        let path = format!("broadcast_messages/{message_id}");
+        self.http
+            .delete(&path, &[], "broadcast_messages.delete")
+            .await
     }
 }

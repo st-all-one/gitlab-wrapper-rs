@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{Template, TemplateFilter};
 use crate::utils::encoding::{encode_query_param, filter_to_query};
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct DockerfileTemplatesResource {
 
 impl DockerfileTemplatesResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -35,7 +35,9 @@ impl DockerfileTemplatesResource {
     ) -> Result<Vec<Template>, GitLabError> {
         let path = "templates/dockerfiles".to_string();
         let query = filter_to_query(filter);
-        self.http.get(&path, &query, "dockerfile_templates.list").await
+        self.http
+            .get(&path, &query, "dockerfile_templates.list")
+            .await
     }
 
     /// Obtém um template Dockerfile pela chave (nome).

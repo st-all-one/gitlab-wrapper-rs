@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{AwardEmoji, CreateEmojiPayload};
 use std::sync::Arc;
 
 /// Recurso de API para operações com emojis de premiação (award emoji) no GitLab.
@@ -13,20 +13,20 @@ pub struct EmojiResource {
 
 impl EmojiResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
     fn base_issue(project_id: u64, issue_iid: u32) -> String {
-        format!("projects/{}/issues/{}/award_emoji", project_id, issue_iid)
+        format!("projects/{project_id}/issues/{issue_iid}/award_emoji")
     }
 
     fn base_mr(project_id: u64, mr_iid: u32) -> String {
-        format!("projects/{}/merge_requests/{}/award_emoji", project_id, mr_iid)
+        format!("projects/{project_id}/merge_requests/{mr_iid}/award_emoji")
     }
 
     fn base_snippet(project_id: u64, snippet_id: u64) -> String {
-        format!("projects/{}/snippets/{}/award_emoji", project_id, snippet_id)
+        format!("projects/{project_id}/snippets/{snippet_id}/award_emoji")
     }
 
     /// Lista emojis de premiação de uma issue.
@@ -93,7 +93,9 @@ impl EmojiResource {
         payload: &CreateEmojiPayload,
     ) -> Result<AwardEmoji, GitLabError> {
         let path = Self::base_issue(project_id, issue_iid);
-        self.http.post(&path, &payload, "emoji.create_issue_emoji").await
+        self.http
+            .post(&path, &payload, "emoji.create_issue_emoji")
+            .await
     }
 
     /// Remove um emoji de premiação de uma issue.
@@ -116,7 +118,9 @@ impl EmojiResource {
         award_id: u64,
     ) -> Result<(), GitLabError> {
         let path = format!("{}/{}", Self::base_issue(project_id, issue_iid), award_id);
-        self.http.delete(&path, &[], "emoji.delete_issue_emoji").await
+        self.http
+            .delete(&path, &[], "emoji.delete_issue_emoji")
+            .await
     }
 
     /// Lista emojis de premiação de um merge request.
@@ -183,7 +187,9 @@ impl EmojiResource {
         payload: &CreateEmojiPayload,
     ) -> Result<AwardEmoji, GitLabError> {
         let path = Self::base_mr(project_id, mr_iid);
-        self.http.post(&path, &payload, "emoji.create_mr_emoji").await
+        self.http
+            .post(&path, &payload, "emoji.create_mr_emoji")
+            .await
     }
 
     /// Remove um emoji de premiação de um merge request.
@@ -250,7 +256,9 @@ impl EmojiResource {
         payload: &CreateEmojiPayload,
     ) -> Result<AwardEmoji, GitLabError> {
         let path = Self::base_snippet(project_id, snippet_id);
-        self.http.post(&path, &payload, "emoji.create_snippet_emoji").await
+        self.http
+            .post(&path, &payload, "emoji.create_snippet_emoji")
+            .await
     }
 
     /// Remove um emoji de premiação de um snippet.
@@ -272,7 +280,13 @@ impl EmojiResource {
         snippet_id: u64,
         award_id: u64,
     ) -> Result<(), GitLabError> {
-        let path = format!("{}/{}", Self::base_snippet(project_id, snippet_id), award_id);
-        self.http.delete(&path, &[], "emoji.delete_snippet_emoji").await
+        let path = format!(
+            "{}/{}",
+            Self::base_snippet(project_id, snippet_id),
+            award_id
+        );
+        self.http
+            .delete(&path, &[], "emoji.delete_snippet_emoji")
+            .await
     }
 }

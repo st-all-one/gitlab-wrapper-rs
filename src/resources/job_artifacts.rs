@@ -10,12 +10,16 @@ pub struct JobArtifactsResource {
 }
 
 impl JobArtifactsResource {
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
     /// Executa a operação .
     /// Executa a operacao `download_by_ref`.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError::Api` se o job não existir ou não tiver artefatos,
+    /// ou `GitLabError::Http` em erro de transporte do download.
     pub async fn download_by_ref(
         &self,
         project_id: u64,
@@ -28,31 +32,49 @@ impl JobArtifactsResource {
             encode_query_param(ref_name)
         );
         let query = vec![("job".to_string(), job_name.to_string())];
-        self.http.get(&path, &query, "job_artifacts.download_by_ref").await
+        self.http
+            .get(&path, &query, "job_artifacts.download_by_ref")
+            .await
     }
 
     /// Executa a operação .
     /// Executa a operacao `keep`.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError::Api` se o artefato não puder ser mantido ou
+    /// `GitLabError::Http` em erro de transporte da requisição.
     pub async fn keep(
         &self,
         project_id: u64,
         job_id: u64,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/jobs/{}/artifacts/keep", project_id, job_id);
-        self.http.post(&path, &serde_json::json!({}), "job_artifacts.keep").await
+        let path = format!("projects/{project_id}/jobs/{job_id}/artifacts/keep");
+        self.http
+            .post(&path, &serde_json::json!({}), "job_artifacts.keep")
+            .await
     }
 
     /// Executa a operação .
     /// Executa a operacao `delete`.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError::Api` se o artefato não existir ou `GitLabError::Http`
+    /// em erro de transporte da exclusão.
     pub async fn delete(&self, project_id: u64, job_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/jobs/{}/artifacts", project_id, job_id);
+        let path = format!("projects/{project_id}/jobs/{job_id}/artifacts");
         self.http.delete(&path, &[], "job_artifacts.delete").await
     }
 
     /// Executa a operação .
     /// Executa a operacao `delete_all`.
+    ///
+    /// ## Errors
+    /// Retorna `GitLabError::Api` se a exclusão for rejeitada ou `GitLabError::Http`
+    /// em erro de transporte da requisição.
     pub async fn delete_all(&self, project_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/artifacts", project_id);
-        self.http.delete(&path, &[], "job_artifacts.delete_all").await
+        let path = format!("projects/{project_id}/artifacts");
+        self.http
+            .delete(&path, &[], "job_artifacts.delete_all")
+            .await
     }
 }

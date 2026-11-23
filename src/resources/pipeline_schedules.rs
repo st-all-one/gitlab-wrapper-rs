@@ -1,6 +1,9 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{
+    CreatePipelineSchedulePayload, PipelineSchedule, PipelineScheduleVariable,
+    UpdatePipelineSchedulePayload,
+};
 use crate::utils::encoding::encode_query_param;
 use std::sync::Arc;
 
@@ -12,7 +15,7 @@ pub struct PipelineSchedulesResource {
 
 impl PipelineSchedulesResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -28,7 +31,7 @@ impl PipelineSchedulesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list(&self, project_id: u64) -> Result<Vec<PipelineSchedule>, GitLabError> {
-        let path = format!("projects/{}/pipeline_schedules", project_id);
+        let path = format!("projects/{project_id}/pipeline_schedules");
         self.http.get(&path, &[], "pipeline_schedules.list").await
     }
 
@@ -49,7 +52,7 @@ impl PipelineSchedulesResource {
         project_id: u64,
         schedule_id: u64,
     ) -> Result<PipelineSchedule, GitLabError> {
-        let path = format!("projects/{}/pipeline_schedules/{}", project_id, schedule_id);
+        let path = format!("projects/{project_id}/pipeline_schedules/{schedule_id}");
         self.http.get(&path, &[], "pipeline_schedules.get").await
     }
 
@@ -70,8 +73,10 @@ impl PipelineSchedulesResource {
         project_id: u64,
         payload: &CreatePipelineSchedulePayload,
     ) -> Result<PipelineSchedule, GitLabError> {
-        let path = format!("projects/{}/pipeline_schedules", project_id);
-        self.http.post(&path, &payload, "pipeline_schedules.create").await
+        let path = format!("projects/{project_id}/pipeline_schedules");
+        self.http
+            .post(&path, &payload, "pipeline_schedules.create")
+            .await
     }
 
     /// Atualiza um agendamento de pipeline existente.
@@ -93,8 +98,10 @@ impl PipelineSchedulesResource {
         schedule_id: u64,
         payload: &UpdatePipelineSchedulePayload,
     ) -> Result<PipelineSchedule, GitLabError> {
-        let path = format!("projects/{}/pipeline_schedules/{}", project_id, schedule_id);
-        self.http.put(&path, &payload, "pipeline_schedules.update").await
+        let path = format!("projects/{project_id}/pipeline_schedules/{schedule_id}");
+        self.http
+            .put(&path, &payload, "pipeline_schedules.update")
+            .await
     }
 
     /// Remove um agendamento de pipeline.
@@ -110,8 +117,10 @@ impl PipelineSchedulesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64, schedule_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/pipeline_schedules/{}", project_id, schedule_id);
-        self.http.delete(&path, &[], "pipeline_schedules.delete").await
+        let path = format!("projects/{project_id}/pipeline_schedules/{schedule_id}");
+        self.http
+            .delete(&path, &[], "pipeline_schedules.delete")
+            .await
     }
 
     /// Assume a propriedade de um agendamento de pipeline.
@@ -131,9 +140,14 @@ impl PipelineSchedulesResource {
         project_id: u64,
         schedule_id: u64,
     ) -> Result<PipelineSchedule, GitLabError> {
-        let path =
-            format!("projects/{}/pipeline_schedules/{}/take_ownership", project_id, schedule_id);
-        self.http.post(&path, &serde_json::json!({}), "pipeline_schedules.take_ownership").await
+        let path = format!("projects/{project_id}/pipeline_schedules/{schedule_id}/take_ownership");
+        self.http
+            .post(
+                &path,
+                &serde_json::json!({}),
+                "pipeline_schedules.take_ownership",
+            )
+            .await
     }
 
     /// Cria uma variável para um agendamento de pipeline.
@@ -157,9 +171,11 @@ impl PipelineSchedulesResource {
         key: &str,
         value: &str,
     ) -> Result<PipelineScheduleVariable, GitLabError> {
-        let path = format!("projects/{}/pipeline_schedules/{}/variables", project_id, schedule_id);
+        let path = format!("projects/{project_id}/pipeline_schedules/{schedule_id}/variables");
         let body = serde_json::json!({ "key": key, "value": value });
-        self.http.post(&path, &body, "pipeline_schedules.create_variable").await
+        self.http
+            .post(&path, &body, "pipeline_schedules.create_variable")
+            .await
     }
 
     /// Atualiza uma variável de um agendamento de pipeline.
@@ -190,7 +206,9 @@ impl PipelineSchedulesResource {
             encode_query_param(key)
         );
         let body = serde_json::json!({ "value": value });
-        self.http.put(&path, &body, "pipeline_schedules.update_variable").await
+        self.http
+            .put(&path, &body, "pipeline_schedules.update_variable")
+            .await
     }
 
     /// Remove uma variável de um agendamento de pipeline.
@@ -218,6 +236,8 @@ impl PipelineSchedulesResource {
             schedule_id,
             encode_query_param(key)
         );
-        self.http.delete(&path, &[], "pipeline_schedules.delete_variable").await
+        self.http
+            .delete(&path, &[], "pipeline_schedules.delete_variable")
+            .await
     }
 }

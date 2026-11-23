@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateFreezePeriodPayload, FreezePeriod, UpdateFreezePeriodPayload};
 use std::sync::Arc;
 
 /// Recurso de API para operações com períodos de congelamento (freeze periods) no GitLab.
@@ -11,7 +11,7 @@ pub struct FreezePeriodsResource {
 
 impl FreezePeriodsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -27,7 +27,7 @@ impl FreezePeriodsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list(&self, project_id: u64) -> Result<Vec<FreezePeriod>, GitLabError> {
-        let path = format!("projects/{}/freeze_periods", project_id);
+        let path = format!("projects/{project_id}/freeze_periods");
         self.http.get(&path, &[], "freeze_periods.list").await
     }
 
@@ -48,7 +48,7 @@ impl FreezePeriodsResource {
         project_id: u64,
         freeze_period_id: u64,
     ) -> Result<FreezePeriod, GitLabError> {
-        let path = format!("projects/{}/freeze_periods/{}", project_id, freeze_period_id);
+        let path = format!("projects/{project_id}/freeze_periods/{freeze_period_id}");
         self.http.get(&path, &[], "freeze_periods.get").await
     }
 
@@ -69,8 +69,10 @@ impl FreezePeriodsResource {
         project_id: u64,
         payload: &CreateFreezePeriodPayload,
     ) -> Result<FreezePeriod, GitLabError> {
-        let path = format!("projects/{}/freeze_periods", project_id);
-        self.http.post(&path, payload, "freeze_periods.create").await
+        let path = format!("projects/{project_id}/freeze_periods");
+        self.http
+            .post(&path, payload, "freeze_periods.create")
+            .await
     }
 
     /// Atualiza um período de congelamento existente.
@@ -92,7 +94,7 @@ impl FreezePeriodsResource {
         freeze_period_id: u64,
         payload: &UpdateFreezePeriodPayload,
     ) -> Result<FreezePeriod, GitLabError> {
-        let path = format!("projects/{}/freeze_periods/{}", project_id, freeze_period_id);
+        let path = format!("projects/{project_id}/freeze_periods/{freeze_period_id}");
         self.http.put(&path, payload, "freeze_periods.update").await
     }
 
@@ -109,7 +111,7 @@ impl FreezePeriodsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64, freeze_period_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/freeze_periods/{}", project_id, freeze_period_id);
+        let path = format!("projects/{project_id}/freeze_periods/{freeze_period_id}");
         self.http.delete(&path, &[], "freeze_periods.delete").await
     }
 }

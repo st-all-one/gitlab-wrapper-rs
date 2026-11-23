@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-/// Versão de pacote RubyGems no GitLab.
+/// Versão de pacote `RubyGems` no GitLab.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct RubygemsPackage {

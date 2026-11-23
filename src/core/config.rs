@@ -98,6 +98,11 @@ impl ResolvedConfig {
     ///
     /// ## Returns
     /// `ResolvedConfig` — configuração com todos os campos preenchidos.
+    #[tracing::instrument(
+        target = "gitlab_wrapper::core",
+        skip(config),
+        fields(operation = "core.resolve_config")
+    )]
     pub fn resolve(config: GitLabConfig) -> Self {
         let base_url = config.base_url.trim_end_matches('/').to_string();
         Self {

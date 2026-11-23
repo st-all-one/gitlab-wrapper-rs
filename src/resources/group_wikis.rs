@@ -1,6 +1,8 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{
+    CreateWikiPagePayload, UpdateWikiPagePayload, WikiAttachmentResult, WikiFilter, WikiPage,
+};
 use crate::utils::encoding::{encode_query_param, filter_to_query};
 use std::sync::Arc;
 
@@ -12,7 +14,7 @@ pub struct GroupWikisResource {
 
 impl GroupWikisResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,7 +35,7 @@ impl GroupWikisResource {
         group_id: u64,
         filter: Option<&WikiFilter>,
     ) -> Result<Vec<WikiPage>, GitLabError> {
-        let path = format!("groups/{}/wikis", group_id);
+        let path = format!("groups/{group_id}/wikis");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "group_wikis.list").await
     }
@@ -72,7 +74,7 @@ impl GroupWikisResource {
         group_id: u64,
         payload: &CreateWikiPagePayload,
     ) -> Result<WikiPage, GitLabError> {
-        let path = format!("groups/{}/wikis", group_id);
+        let path = format!("groups/{group_id}/wikis");
         self.http.post(&path, &payload, "group_wikis.create").await
     }
 
@@ -138,9 +140,11 @@ impl GroupWikisResource {
         file_name: &str,
         data: Vec<u8>,
     ) -> Result<WikiAttachmentResult, GitLabError> {
-        let path = format!("groups/{}/wikis/attachments", group_id);
+        let path = format!("groups/{group_id}/wikis/attachments");
         let part = reqwest::multipart::Part::bytes(data).file_name(file_name.to_string());
         let form = reqwest::multipart::Form::new().part("file", part);
-        self.http.post_multipart(&path, form, "group_wikis.upload_attachment").await
+        self.http
+            .post_multipart(&path, form, "group_wikis.upload_attachment")
+            .await
     }
 }

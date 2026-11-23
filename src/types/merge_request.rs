@@ -1,4 +1,4 @@
-use crate::types::base::*;
+use crate::types::base::{AuthorInfo, GitLabId, Links, TaskCompletionStatus, TimeStats};
 use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando um merge request.
@@ -41,7 +41,7 @@ pub struct MergeRequest {
     pub reviewers: Option<Vec<AuthorInfo>>,
     /// URL do merge request no GitLab.
     pub web_url: Option<String>,
-    /// Status do merge ("can_be_merged", "cannot_be_merged", "unchecked", "checking").
+    /// Status do merge ("`can_be_merged`", "`cannot_be_merged`", "unchecked", "checking").
     pub merge_status: Option<String>,
     /// Indica se o merge deve ocorrer automaticamente quando o pipeline passar.
     pub merge_when_pipeline_succeeds: Option<bool>,
@@ -82,6 +82,8 @@ pub struct MergeRequest {
     /// Usuário que realizou o merge.
     pub merge_user: Option<AuthorInfo>,
     /// Links relacionados ao merge request.
+    // Nome imposto pela API GitLab (`_links`); não é campo ignorado.
+    #[allow(clippy::pub_underscore_fields)]
     pub _links: Option<Links>,
 }
 

@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateFilePayload, RepositoryFile, UpdateFilePayload};
 use crate::utils::encoding::encode_query_param;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct RepositoryFilesResource {
 
 impl RepositoryFilesResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -35,8 +35,11 @@ impl RepositoryFilesResource {
         file_path: &str,
         ref_: &str,
     ) -> Result<RepositoryFile, GitLabError> {
-        let path =
-            format!("projects/{}/repository/files/{}", project_id, encode_query_param(file_path));
+        let path = format!(
+            "projects/{}/repository/files/{}",
+            project_id,
+            encode_query_param(file_path)
+        );
         let query = vec![("ref".to_string(), ref_.to_string())];
         self.http.get(&path, &query, "repository_files.get").await
     }
@@ -66,7 +69,9 @@ impl RepositoryFilesResource {
             encode_query_param(file_path)
         );
         let query = vec![("ref".to_string(), ref_.to_string())];
-        self.http.get_raw_text(&path, &query, "repository_files.raw").await
+        self.http
+            .get_raw_text(&path, &query, "repository_files.raw")
+            .await
     }
 
     /// Obtém informações de blame de um arquivo.
@@ -116,9 +121,14 @@ impl RepositoryFilesResource {
         file_path: &str,
         payload: &CreateFilePayload,
     ) -> Result<RepositoryFile, GitLabError> {
-        let path =
-            format!("projects/{}/repository/files/{}", project_id, encode_query_param(file_path));
-        self.http.post(&path, &payload, "repository_files.create").await
+        let path = format!(
+            "projects/{}/repository/files/{}",
+            project_id,
+            encode_query_param(file_path)
+        );
+        self.http
+            .post(&path, &payload, "repository_files.create")
+            .await
     }
 
     /// Atualiza um arquivo existente no repositório.
@@ -140,9 +150,14 @@ impl RepositoryFilesResource {
         file_path: &str,
         payload: &UpdateFilePayload,
     ) -> Result<RepositoryFile, GitLabError> {
-        let path =
-            format!("projects/{}/repository/files/{}", project_id, encode_query_param(file_path));
-        self.http.put(&path, &payload, "repository_files.update").await
+        let path = format!(
+            "projects/{}/repository/files/{}",
+            project_id,
+            encode_query_param(file_path)
+        );
+        self.http
+            .put(&path, &payload, "repository_files.update")
+            .await
     }
 
     /// Remove um arquivo do repositório.
@@ -166,9 +181,14 @@ impl RepositoryFilesResource {
         branch: &str,
         commit_message: &str,
     ) -> Result<(), GitLabError> {
-        let path =
-            format!("projects/{}/repository/files/{}", project_id, encode_query_param(file_path));
+        let path = format!(
+            "projects/{}/repository/files/{}",
+            project_id,
+            encode_query_param(file_path)
+        );
         let body = serde_json::json!({ "branch": branch, "commit_message": commit_message });
-        self.http.delete_with_body(&path, &body, "repository_files.delete").await
+        self.http
+            .delete_with_body(&path, &body, "repository_files.delete")
+            .await
     }
 }

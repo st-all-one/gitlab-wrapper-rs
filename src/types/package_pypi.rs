@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-/// Versão de pacote PyPi no GitLab.
+/// Versão de pacote `PyPi` no GitLab.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct PypiPackage {

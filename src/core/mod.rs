@@ -10,3 +10,5 @@ pub mod config;
 pub mod constants;
 /// Tipos de erro (categorias, contexto e enum principal de erro).
 pub mod errors;
+/// Instrumentação, correlation IDs e spans estruturados (uso interno).
+pub(crate) mod telemetry;

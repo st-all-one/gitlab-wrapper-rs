@@ -1,4 +1,4 @@
-use crate::types::base::*;
+use crate::types::base::{AuthorInfo, GitLabId};
 use crate::types::note::Note;
 use serde::{Deserialize, Serialize};
 

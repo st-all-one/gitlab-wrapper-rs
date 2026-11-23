@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateDiscussionPayload, CreateNotePayload, Discussion, Note};
 use crate::utils::encoding::encode_query_param;
 use std::sync::Arc;
 
@@ -12,20 +12,20 @@ pub struct DiscussionsResource {
 
 impl DiscussionsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
     fn base_issue(project_id: u64, issue_iid: u32) -> String {
-        format!("projects/{}/issues/{}/discussions", project_id, issue_iid)
+        format!("projects/{project_id}/issues/{issue_iid}/discussions")
     }
 
     fn base_mr(project_id: u64, mr_iid: u32) -> String {
-        format!("projects/{}/merge_requests/{}/discussions", project_id, mr_iid)
+        format!("projects/{project_id}/merge_requests/{mr_iid}/discussions")
     }
 
     fn base_commit(project_id: u64, sha: &str) -> String {
-        format!("projects/{}/repository/commits/{}/discussions", project_id, sha)
+        format!("projects/{project_id}/repository/commits/{sha}/discussions")
     }
 
     /// Lista discussões de uma issue.
@@ -69,7 +69,9 @@ impl DiscussionsResource {
         body: &CreateDiscussionPayload,
     ) -> Result<Discussion, GitLabError> {
         let path = Self::base_issue(project_id, issue_iid);
-        self.http.post(&path, &body, "discussions.create_issue").await
+        self.http
+            .post(&path, &body, "discussions.create_issue")
+            .await
     }
 
     /// Adiciona uma nota a uma discussão de issue.
@@ -93,8 +95,14 @@ impl DiscussionsResource {
         discussion_id: &str,
         note: &CreateNotePayload,
     ) -> Result<Note, GitLabError> {
-        let path = format!("{}/{}/notes", Self::base_issue(project_id, issue_iid), discussion_id);
-        self.http.post(&path, &note, "discussions.add_issue_note").await
+        let path = format!(
+            "{}/{}/notes",
+            Self::base_issue(project_id, issue_iid),
+            discussion_id
+        );
+        self.http
+            .post(&path, &note, "discussions.add_issue_note")
+            .await
     }
 
     /// Obtém uma discussão específica de uma issue.
@@ -154,7 +162,9 @@ impl DiscussionsResource {
             note_id
         );
         let payload = serde_json::json!({ "body": body });
-        self.http.put(&path, &payload, "discussions.update_issue_note").await
+        self.http
+            .put(&path, &payload, "discussions.update_issue_note")
+            .await
     }
 
     /// Remove uma nota de uma discussão de issue.
@@ -184,7 +194,9 @@ impl DiscussionsResource {
             encode_query_param(discussion_id),
             note_id
         );
-        self.http.delete(&path, &[], "discussions.delete_issue_note").await
+        self.http
+            .delete(&path, &[], "discussions.delete_issue_note")
+            .await
     }
 
     /// Resolve ou não resolve uma discussão de issue.
@@ -214,7 +226,9 @@ impl DiscussionsResource {
             encode_query_param(discussion_id)
         );
         let payload = serde_json::json!({ "resolved": resolved });
-        self.http.put(&path, &payload, "discussions.resolve_issue").await
+        self.http
+            .put(&path, &payload, "discussions.resolve_issue")
+            .await
     }
 
     /// Lista discussões de um merge request.
@@ -282,8 +296,14 @@ impl DiscussionsResource {
         discussion_id: &str,
         note: &CreateNotePayload,
     ) -> Result<Note, GitLabError> {
-        let path = format!("{}/{}/notes", Self::base_mr(project_id, mr_iid), discussion_id);
-        self.http.post(&path, &note, "discussions.add_mr_note").await
+        let path = format!(
+            "{}/{}/notes",
+            Self::base_mr(project_id, mr_iid),
+            discussion_id
+        );
+        self.http
+            .post(&path, &note, "discussions.add_mr_note")
+            .await
     }
 
     /// Obtém uma discussão específica de um merge request.
@@ -305,8 +325,11 @@ impl DiscussionsResource {
         mr_iid: u32,
         discussion_id: &str,
     ) -> Result<Discussion, GitLabError> {
-        let path =
-            format!("{}/{}", Self::base_mr(project_id, mr_iid), encode_query_param(discussion_id));
+        let path = format!(
+            "{}/{}",
+            Self::base_mr(project_id, mr_iid),
+            encode_query_param(discussion_id)
+        );
         self.http.get(&path, &[], "discussions.get_mr").await
     }
 
@@ -340,7 +363,9 @@ impl DiscussionsResource {
             note_id
         );
         let payload = serde_json::json!({ "body": body });
-        self.http.put(&path, &payload, "discussions.update_mr_note").await
+        self.http
+            .put(&path, &payload, "discussions.update_mr_note")
+            .await
     }
 
     /// Remove uma nota de uma discussão de merge request.
@@ -370,7 +395,9 @@ impl DiscussionsResource {
             encode_query_param(discussion_id),
             note_id
         );
-        self.http.delete(&path, &[], "discussions.delete_mr_note").await
+        self.http
+            .delete(&path, &[], "discussions.delete_mr_note")
+            .await
     }
 
     /// Resolve ou não resolve uma discussão de merge request.
@@ -394,10 +421,15 @@ impl DiscussionsResource {
         discussion_id: &str,
         resolved: bool,
     ) -> Result<Discussion, GitLabError> {
-        let path =
-            format!("{}/{}", Self::base_mr(project_id, mr_iid), encode_query_param(discussion_id));
+        let path = format!(
+            "{}/{}",
+            Self::base_mr(project_id, mr_iid),
+            encode_query_param(discussion_id)
+        );
         let payload = serde_json::json!({ "resolved": resolved });
-        self.http.put(&path, &payload, "discussions.resolve_mr").await
+        self.http
+            .put(&path, &payload, "discussions.resolve_mr")
+            .await
     }
 
     /// Lista discussões de um commit.
@@ -441,7 +473,9 @@ impl DiscussionsResource {
         body: &CreateDiscussionPayload,
     ) -> Result<Discussion, GitLabError> {
         let path = Self::base_commit(project_id, sha);
-        self.http.post(&path, &body, "discussions.create_commit").await
+        self.http
+            .post(&path, &body, "discussions.create_commit")
+            .await
     }
 
     /// Adiciona uma nota a uma discussão de commit.
@@ -465,8 +499,14 @@ impl DiscussionsResource {
         discussion_id: &str,
         note: &CreateNotePayload,
     ) -> Result<Note, GitLabError> {
-        let path = format!("{}/{}/notes", Self::base_commit(project_id, sha), discussion_id);
-        self.http.post(&path, &note, "discussions.add_commit_note").await
+        let path = format!(
+            "{}/{}/notes",
+            Self::base_commit(project_id, sha),
+            discussion_id
+        );
+        self.http
+            .post(&path, &note, "discussions.add_commit_note")
+            .await
     }
 
     /// Obtém uma discussão específica de um commit.
@@ -488,8 +528,11 @@ impl DiscussionsResource {
         sha: &str,
         discussion_id: &str,
     ) -> Result<Discussion, GitLabError> {
-        let path =
-            format!("{}/{}", Self::base_commit(project_id, sha), encode_query_param(discussion_id));
+        let path = format!(
+            "{}/{}",
+            Self::base_commit(project_id, sha),
+            encode_query_param(discussion_id)
+        );
         self.http.get(&path, &[], "discussions.get_commit").await
     }
 
@@ -523,7 +566,9 @@ impl DiscussionsResource {
             note_id
         );
         let payload = serde_json::json!({ "body": body });
-        self.http.put(&path, &payload, "discussions.update_commit_note").await
+        self.http
+            .put(&path, &payload, "discussions.update_commit_note")
+            .await
     }
 
     /// Remove uma nota de uma discussão de commit.
@@ -553,7 +598,9 @@ impl DiscussionsResource {
             encode_query_param(discussion_id),
             note_id
         );
-        self.http.delete(&path, &[], "discussions.delete_commit_note").await
+        self.http
+            .delete(&path, &[], "discussions.delete_commit_note")
+            .await
     }
 
     /// Resolve ou não resolve uma discussão de commit.
@@ -577,9 +624,14 @@ impl DiscussionsResource {
         discussion_id: &str,
         resolved: bool,
     ) -> Result<Discussion, GitLabError> {
-        let path =
-            format!("{}/{}", Self::base_commit(project_id, sha), encode_query_param(discussion_id));
+        let path = format!(
+            "{}/{}",
+            Self::base_commit(project_id, sha),
+            encode_query_param(discussion_id)
+        );
         let payload = serde_json::json!({ "resolved": resolved });
-        self.http.put(&path, &payload, "discussions.resolve_commit").await
+        self.http
+            .put(&path, &payload, "discussions.resolve_commit")
+            .await
     }
 }

@@ -1,4 +1,4 @@
-use crate::types::base::*;
+use crate::types::base::GitLabId;
 use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando uma iteração de grupo.

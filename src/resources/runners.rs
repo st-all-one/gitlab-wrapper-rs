@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateRunnerPayload, Job, Runner, UpdateRunnerPayload};
 use std::sync::Arc;
 
 /// Recurso de API para operações com runners no GitLab.
@@ -11,7 +11,7 @@ pub struct RunnersResource {
 
 impl RunnersResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -42,7 +42,7 @@ impl RunnersResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, runner_id: u64) -> Result<Runner, GitLabError> {
-        let path = format!("runners/{}", runner_id);
+        let path = format!("runners/{runner_id}");
         self.http.get(&path, &[], "runners.get").await
     }
 
@@ -78,7 +78,7 @@ impl RunnersResource {
         runner_id: u64,
         payload: &UpdateRunnerPayload,
     ) -> Result<Runner, GitLabError> {
-        let path = format!("runners/{}", runner_id);
+        let path = format!("runners/{runner_id}");
         self.http.put(&path, &payload, "runners.update").await
     }
 
@@ -94,7 +94,7 @@ impl RunnersResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, runner_id: u64) -> Result<(), GitLabError> {
-        let path = format!("runners/{}", runner_id);
+        let path = format!("runners/{runner_id}");
         self.http.delete(&path, &[], "runners.delete").await
     }
 
@@ -110,7 +110,7 @@ impl RunnersResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list_jobs(&self, runner_id: u64) -> Result<Vec<Job>, GitLabError> {
-        let path = format!("runners/{}/jobs", runner_id);
+        let path = format!("runners/{runner_id}/jobs");
         self.http.get(&path, &[], "runners.list_jobs").await
     }
 }

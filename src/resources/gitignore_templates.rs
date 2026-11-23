@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{Template, TemplateFilter};
 use crate::utils::encoding::{encode_query_param, filter_to_query};
 use std::sync::Arc;
 
@@ -11,7 +11,7 @@ pub struct GitignoreTemplatesResource {
 }
 
 impl GitignoreTemplatesResource {
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -34,7 +34,9 @@ impl GitignoreTemplatesResource {
     ) -> Result<Vec<Template>, GitLabError> {
         let path = "templates/gitignores".to_string();
         let query = filter_to_query(filter);
-        self.http.get(&path, &query, "gitignore_templates.list").await
+        self.http
+            .get(&path, &query, "gitignore_templates.list")
+            .await
     }
 
     /// Obtém um template .gitignore pela chave (nome).

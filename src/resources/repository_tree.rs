@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{RepositoryTreeItem, TreeFilter};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct RepositoryTreeResource {
 
 impl RepositoryTreeResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -20,7 +20,7 @@ impl RepositoryTreeResource {
     ///
     /// ## Params
     /// - `project_id`: ID do projeto no GitLab.
-    /// - `filter`: Filtros opcionais (path, ref_, recursive, per_page, page).
+    /// - `filter`: Filtros opcionais (path, ref_, recursive, `per_page`, page).
     ///
     /// ## Returns
     /// `Result<Vec<RepositoryTreeItem>, GitLabError>` — lista de itens da árvore.
@@ -33,7 +33,7 @@ impl RepositoryTreeResource {
         project_id: u64,
         filter: Option<&TreeFilter>,
     ) -> Result<Vec<RepositoryTreeItem>, GitLabError> {
-        let path = format!("projects/{}/repository/tree", project_id);
+        let path = format!("projects/{project_id}/repository/tree");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "repository_tree.list").await
     }
@@ -57,8 +57,11 @@ impl RepositoryTreeResource {
         file_path: &str,
         ref_: &str,
     ) -> Result<RepositoryTreeItem, GitLabError> {
-        let url = format!("projects/{}/repository/tree", project_id);
-        let query = vec![("path".into(), file_path.into()), ("ref".into(), ref_.into())];
+        let url = format!("projects/{project_id}/repository/tree");
+        let query = vec![
+            ("path".into(), file_path.into()),
+            ("ref".into(), ref_.into()),
+        ];
         self.http.get(&url, &query, "repository_tree.get").await
     }
 }

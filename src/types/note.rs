@@ -1,4 +1,4 @@
-use crate::types::base::*;
+use crate::types::base::{AuthorInfo, GitLabId, Links};
 use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando uma nota (comentário).
@@ -21,7 +21,7 @@ pub struct Note {
     pub system: Option<bool>,
     /// ID do recurso noteable ao qual a nota pertence.
     pub noteable_id: Option<GitLabId>,
-    /// Tipo do recurso noteable (ex: MergeRequest, Issue).
+    /// Tipo do recurso noteable (ex: `MergeRequest`, Issue).
     pub noteable_type: Option<String>,
     /// ID do projeto.
     pub project_id: Option<GitLabId>,
@@ -36,6 +36,8 @@ pub struct Note {
     /// Posição da nota (para notas em código).
     pub position: Option<NotePosition>,
     /// Links relacionados à nota.
+    // Nome imposto pela API GitLab (`_links`); não é campo ignorado.
+    #[allow(clippy::pub_underscore_fields)]
     pub _links: Option<Links>,
 }
 

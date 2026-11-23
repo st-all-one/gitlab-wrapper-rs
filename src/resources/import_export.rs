@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{ImportPayload, Project};
 use std::sync::Arc;
 
 /// Recurso de API para operações de importação e exportação de projetos no GitLab.
@@ -11,7 +11,7 @@ pub struct ImportExportResource {
 
 impl ImportExportResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -27,8 +27,14 @@ impl ImportExportResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn schedule_export(&self, project_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/export", project_id);
-        self.http.post(&path, &serde_json::json!({}), "import_export.schedule_export").await
+        let path = format!("projects/{project_id}/export");
+        self.http
+            .post(
+                &path,
+                &serde_json::json!({}),
+                "import_export.schedule_export",
+            )
+            .await
     }
 
     /// Consulta o status da exportação de um projeto.
@@ -43,8 +49,10 @@ impl ImportExportResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn export_status(&self, project_id: u64) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/export", project_id);
-        self.http.get(&path, &[], "import_export.export_status").await
+        let path = format!("projects/{project_id}/export");
+        self.http
+            .get(&path, &[], "import_export.export_status")
+            .await
     }
 
     /// Faz o download do arquivo de exportação de um projeto.
@@ -59,8 +67,10 @@ impl ImportExportResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn download_export(&self, project_id: u64) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/export/download", project_id);
-        self.http.get(&path, &[], "import_export.download_export").await
+        let path = format!("projects/{project_id}/export/download");
+        self.http
+            .get(&path, &[], "import_export.download_export")
+            .await
     }
 
     /// Importa um projeto a partir de um arquivo de exportação.
@@ -91,7 +101,9 @@ impl ImportExportResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn import_status(&self, project_id: u64) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/import", project_id);
-        self.http.get(&path, &[], "import_export.import_status").await
+        let path = format!("projects/{project_id}/import");
+        self.http
+            .get(&path, &[], "import_export.import_status")
+            .await
     }
 }

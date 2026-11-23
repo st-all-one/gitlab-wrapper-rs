@@ -1,4 +1,4 @@
-use crate::types::base::*;
+use crate::types::base::{AuthorInfo, GitLabId};
 use serde::{Deserialize, Serialize};
 
 /// Resposta da API GitLab representando uma tarefa (todo).
@@ -33,7 +33,7 @@ pub struct Todo {
 pub struct TodoFilter {
     /// Filtro por estado (done, pending).
     pub state: Option<String>,
-    /// Filtro por tipo de alvo (Issue, MergeRequest, etc.).
+    /// Filtro por tipo de alvo (Issue, `MergeRequest`, etc.).
     #[serde(rename = "type")]
     pub type_: Option<String>,
     /// Filtro por ação (assigned, mentioned, etc.).

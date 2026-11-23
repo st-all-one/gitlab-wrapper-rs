@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreatePipelinePayload, Pipeline, PipelineFilter, PipelineVariable};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct PipelinesResource {
 
 impl PipelinesResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,7 +33,7 @@ impl PipelinesResource {
         project_id: u64,
         filter: Option<&PipelineFilter>,
     ) -> Result<Vec<Pipeline>, GitLabError> {
-        let path = format!("projects/{}/pipelines", project_id);
+        let path = format!("projects/{project_id}/pipelines");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "pipelines.list").await
     }
@@ -51,7 +51,7 @@ impl PipelinesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, pipeline_id: u64) -> Result<Pipeline, GitLabError> {
-        let path = format!("projects/{}/pipelines/{}", project_id, pipeline_id);
+        let path = format!("projects/{project_id}/pipelines/{pipeline_id}");
         self.http.get(&path, &[], "pipelines.get").await
     }
 
@@ -67,7 +67,7 @@ impl PipelinesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get_latest(&self, project_id: u64) -> Result<Pipeline, GitLabError> {
-        let path = format!("projects/{}/pipelines/latest", project_id);
+        let path = format!("projects/{project_id}/pipelines/latest");
         self.http.get(&path, &[], "pipelines.get_latest").await
     }
 
@@ -88,7 +88,7 @@ impl PipelinesResource {
         project_id: u64,
         payload: &CreatePipelinePayload,
     ) -> Result<Pipeline, GitLabError> {
-        let path = format!("projects/{}/pipeline", project_id);
+        let path = format!("projects/{project_id}/pipeline");
         self.http.post(&path, &payload, "pipelines.create").await
     }
 
@@ -105,8 +105,10 @@ impl PipelinesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn retry(&self, project_id: u64, pipeline_id: u64) -> Result<Pipeline, GitLabError> {
-        let path = format!("projects/{}/pipelines/{}/retry", project_id, pipeline_id);
-        self.http.post(&path, &serde_json::json!({}), "pipelines.retry").await
+        let path = format!("projects/{project_id}/pipelines/{pipeline_id}/retry");
+        self.http
+            .post(&path, &serde_json::json!({}), "pipelines.retry")
+            .await
     }
 
     /// Cancela uma pipeline em execução.
@@ -122,8 +124,10 @@ impl PipelinesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn cancel(&self, project_id: u64, pipeline_id: u64) -> Result<Pipeline, GitLabError> {
-        let path = format!("projects/{}/pipelines/{}/cancel", project_id, pipeline_id);
-        self.http.post(&path, &serde_json::json!({}), "pipelines.cancel").await
+        let path = format!("projects/{project_id}/pipelines/{pipeline_id}/cancel");
+        self.http
+            .post(&path, &serde_json::json!({}), "pipelines.cancel")
+            .await
     }
 
     /// Remove uma pipeline.
@@ -139,7 +143,7 @@ impl PipelinesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64, pipeline_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/pipelines/{}", project_id, pipeline_id);
+        let path = format!("projects/{project_id}/pipelines/{pipeline_id}");
         self.http.delete(&path, &[], "pipelines.delete").await
     }
 
@@ -160,7 +164,7 @@ impl PipelinesResource {
         project_id: u64,
         pipeline_id: u64,
     ) -> Result<Vec<PipelineVariable>, GitLabError> {
-        let path = format!("projects/{}/pipelines/{}/variables", project_id, pipeline_id);
+        let path = format!("projects/{project_id}/pipelines/{pipeline_id}/variables");
         self.http.get(&path, &[], "pipelines.variables").await
     }
 
@@ -181,7 +185,7 @@ impl PipelinesResource {
         project_id: u64,
         pipeline_id: u64,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/pipelines/{}/test_report", project_id, pipeline_id);
+        let path = format!("projects/{project_id}/pipelines/{pipeline_id}/test_report");
         self.http.get(&path, &[], "pipelines.test_report").await
     }
 
@@ -202,7 +206,9 @@ impl PipelinesResource {
         project_id: u64,
         pipeline_id: u64,
     ) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/pipelines/{}/test_report_summary", project_id, pipeline_id);
-        self.http.get(&path, &[], "pipelines.test_report_summary").await
+        let path = format!("projects/{project_id}/pipelines/{pipeline_id}/test_report_summary");
+        self.http
+            .get(&path, &[], "pipelines.test_report_summary")
+            .await
     }
 }

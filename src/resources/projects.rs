@@ -1,6 +1,8 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{
+    CreateProjectPayload, Project, ProjectFilter, UpdateProjectPayload, UploadResult,
+};
 use crate::utils::encoding::encode_query_param;
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
@@ -13,7 +15,7 @@ pub struct ProjectsResource {
 
 impl ProjectsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -49,7 +51,9 @@ impl ProjectsResource {
         filter: Option<&ProjectFilter>,
     ) -> Result<Vec<Project>, GitLabError> {
         let query = filter_to_query(filter);
-        self.http.paginate_all("projects", &query, "projects.list_all").await
+        self.http
+            .paginate_all("projects", &query, "projects.list_all")
+            .await
     }
 
     /// Obtém um projeto pelo ID.
@@ -64,7 +68,7 @@ impl ProjectsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64) -> Result<Project, GitLabError> {
-        let path = format!("projects/{}", project_id);
+        let path = format!("projects/{project_id}");
         self.http.get(&path, &[], "projects.get").await
     }
 
@@ -81,7 +85,7 @@ impl ProjectsResource {
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get_by_path(&self, path: &str) -> Result<Project, GitLabError> {
         let encoded = encode_query_param(path);
-        let url = format!("projects/{}", encoded);
+        let url = format!("projects/{encoded}");
         self.http.get(&url, &[], "projects.get_by_path").await
     }
 
@@ -97,7 +101,9 @@ impl ProjectsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn create(&self, payload: &CreateProjectPayload) -> Result<Project, GitLabError> {
-        self.http.post("projects", &payload, "projects.create").await
+        self.http
+            .post("projects", &payload, "projects.create")
+            .await
     }
 
     /// Atualiza um projeto existente.
@@ -117,7 +123,7 @@ impl ProjectsResource {
         project_id: u64,
         payload: &UpdateProjectPayload,
     ) -> Result<Project, GitLabError> {
-        let path = format!("projects/{}", project_id);
+        let path = format!("projects/{project_id}");
         self.http.put(&path, &payload, "projects.update").await
     }
 
@@ -133,7 +139,7 @@ impl ProjectsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}", project_id);
+        let path = format!("projects/{project_id}");
         self.http.delete(&path, &[], "projects.delete").await
     }
 
@@ -149,8 +155,10 @@ impl ProjectsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn archive(&self, project_id: u64) -> Result<Project, GitLabError> {
-        let path = format!("projects/{}/archive", project_id);
-        self.http.post(&path, &serde_json::json!({}), "projects.archive").await
+        let path = format!("projects/{project_id}/archive");
+        self.http
+            .post(&path, &serde_json::json!({}), "projects.archive")
+            .await
     }
 
     /// Desarquiva um projeto.
@@ -165,8 +173,10 @@ impl ProjectsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn unarchive(&self, project_id: u64) -> Result<Project, GitLabError> {
-        let path = format!("projects/{}/unarchive", project_id);
-        self.http.post(&path, &serde_json::json!({}), "projects.unarchive").await
+        let path = format!("projects/{project_id}/unarchive");
+        self.http
+            .post(&path, &serde_json::json!({}), "projects.unarchive")
+            .await
     }
 
     /// Cria um fork de um projeto.
@@ -187,12 +197,11 @@ impl ProjectsResource {
         project_id: u64,
         namespace_path: Option<&str>,
     ) -> Result<Project, GitLabError> {
-        let path = format!("projects/{}/fork", project_id);
-        let body = if let Some(ns) = namespace_path {
-            serde_json::json!({ "namespace": ns })
-        } else {
-            serde_json::json!({})
-        };
+        let path = format!("projects/{project_id}/fork");
+        let body = namespace_path.map_or_else(
+            || serde_json::json!({}),
+            |ns| serde_json::json!({ "namespace": ns }),
+        );
         self.http.post(&path, &body, "projects.fork").await
     }
 
@@ -219,10 +228,12 @@ impl ProjectsResource {
         file_name: &str,
         data: Vec<u8>,
     ) -> Result<UploadResult, GitLabError> {
-        let path = format!("projects/{}/uploads", project_id);
+        let path = format!("projects/{project_id}/uploads");
         let part = reqwest::multipart::Part::bytes(data).file_name(file_name.to_string());
         let form = reqwest::multipart::Form::new().part("file", part);
-        self.http.post_multipart(&path, form, "projects.upload_file").await
+        self.http
+            .post_multipart(&path, form, "projects.upload_file")
+            .await
     }
 
     /// Faz upload de avatar para um projeto.
@@ -247,10 +258,12 @@ impl ProjectsResource {
         file_name: &str,
         data: Vec<u8>,
     ) -> Result<Project, GitLabError> {
-        let path = format!("projects/{}", project_id);
+        let path = format!("projects/{project_id}");
         let part = reqwest::multipart::Part::bytes(data).file_name(file_name.to_string());
         let form = reqwest::multipart::Form::new().part("avatar", part);
-        self.http.put_multipart(&path, form, "projects.upload_avatar").await
+        self.http
+            .put_multipart(&path, form, "projects.upload_avatar")
+            .await
     }
 
     /// Transfere um projeto para outro namespace.
@@ -270,7 +283,7 @@ impl ProjectsResource {
         project_id: u64,
         namespace_id: u64,
     ) -> Result<Project, GitLabError> {
-        let path = format!("projects/{}/transfer", project_id);
+        let path = format!("projects/{project_id}/transfer");
         let body = serde_json::json!({ "namespace_id": namespace_id });
         self.http.put(&path, &body, "projects.transfer").await
     }
@@ -287,8 +300,10 @@ impl ProjectsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn star(&self, project_id: u64) -> Result<Project, GitLabError> {
-        let path = format!("projects/{}/star", project_id);
-        self.http.post(&path, &serde_json::json!({}), "projects.star").await
+        let path = format!("projects/{project_id}/star");
+        self.http
+            .post(&path, &serde_json::json!({}), "projects.star")
+            .await
     }
 
     /// Remove o favorito (unstar) de um projeto.
@@ -303,8 +318,10 @@ impl ProjectsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn unstar(&self, project_id: u64) -> Result<Project, GitLabError> {
-        let path = format!("projects/{}/unstar", project_id);
-        self.http.post(&path, &serde_json::json!({}), "projects.unstar").await
+        let path = format!("projects/{project_id}/unstar");
+        self.http
+            .post(&path, &serde_json::json!({}), "projects.unstar")
+            .await
     }
 
     /// Lista forks de um projeto.
@@ -324,7 +341,7 @@ impl ProjectsResource {
         project_id: u64,
         filter: Option<&ProjectFilter>,
     ) -> Result<Vec<Project>, GitLabError> {
-        let path = format!("projects/{}/forks", project_id);
+        let path = format!("projects/{project_id}/forks");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "projects.list_forks").await
     }
@@ -341,7 +358,7 @@ impl ProjectsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn languages(&self, project_id: u64) -> Result<serde_json::Value, GitLabError> {
-        let path = format!("projects/{}/languages", project_id);
+        let path = format!("projects/{project_id}/languages");
         self.http.get(&path, &[], "projects.languages").await
     }
 
@@ -364,7 +381,7 @@ impl ProjectsResource {
         group_id: u64,
         group_access: u32,
     ) -> Result<Project, GitLabError> {
-        let path = format!("projects/{}/share", project_id);
+        let path = format!("projects/{project_id}/share");
         let body = serde_json::json!({ "group_id": group_id, "group_access": group_access });
         self.http.post(&path, &body, "projects.share").await
     }
@@ -382,7 +399,7 @@ impl ProjectsResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn unshare(&self, project_id: u64, group_id: u64) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/share/{}", project_id, group_id);
+        let path = format!("projects/{project_id}/share/{group_id}");
         self.http.delete(&path, &[], "projects.unshare").await
     }
 }

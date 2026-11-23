@@ -1,6 +1,8 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{
+    CreateGroupVariablePayload, GroupVariable, GroupVariableFilter, UpdateGroupVariablePayload,
+};
 use crate::utils::encoding::{encode_query_param, filter_to_query};
 use std::sync::Arc;
 
@@ -12,7 +14,7 @@ pub struct GroupVariablesResource {
 
 impl GroupVariablesResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,7 +35,7 @@ impl GroupVariablesResource {
         group_id: u64,
         filter: Option<&GroupVariableFilter>,
     ) -> Result<Vec<GroupVariable>, GitLabError> {
-        let path = format!("groups/{}/variables", group_id);
+        let path = format!("groups/{group_id}/variables");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "group_variables.list").await
     }
@@ -72,8 +74,10 @@ impl GroupVariablesResource {
         group_id: u64,
         payload: &CreateGroupVariablePayload,
     ) -> Result<GroupVariable, GitLabError> {
-        let path = format!("groups/{}/variables", group_id);
-        self.http.post(&path, payload, "group_variables.create").await
+        let path = format!("groups/{group_id}/variables");
+        self.http
+            .post(&path, payload, "group_variables.create")
+            .await
     }
 
     /// Atualiza uma variável de grupo existente.
@@ -96,7 +100,9 @@ impl GroupVariablesResource {
         payload: &UpdateGroupVariablePayload,
     ) -> Result<GroupVariable, GitLabError> {
         let path = format!("groups/{}/variables/{}", group_id, encode_query_param(key));
-        self.http.put(&path, payload, "group_variables.update").await
+        self.http
+            .put(&path, payload, "group_variables.update")
+            .await
     }
 
     /// Remove uma variável de grupo.

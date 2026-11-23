@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateDraftNotePayload, DraftNote, UpdateDraftNotePayload};
 use std::sync::Arc;
 
 /// Recurso de API para operações com notas em rascunho (draft notes) no GitLab.
@@ -11,7 +11,7 @@ pub struct DraftNotesResource {
 
 impl DraftNotesResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -28,7 +28,7 @@ impl DraftNotesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list(&self, project_id: u64, mr_iid: u32) -> Result<Vec<DraftNote>, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/draft_notes", project_id, mr_iid);
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/draft_notes");
         self.http.get(&path, &[], "draft_notes.list").await
     }
 
@@ -51,7 +51,7 @@ impl DraftNotesResource {
         mr_iid: u32,
         payload: &CreateDraftNotePayload,
     ) -> Result<DraftNote, GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/draft_notes", project_id, mr_iid);
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/draft_notes");
         self.http.post(&path, &payload, "draft_notes.create").await
     }
 
@@ -76,10 +76,8 @@ impl DraftNotesResource {
         draft_note_id: u64,
         payload: &UpdateDraftNotePayload,
     ) -> Result<DraftNote, GitLabError> {
-        let path = format!(
-            "projects/{}/merge_requests/{}/draft_notes/{}",
-            project_id, mr_iid, draft_note_id
-        );
+        let path =
+            format!("projects/{project_id}/merge_requests/{mr_iid}/draft_notes/{draft_note_id}");
         self.http.put(&path, &payload, "draft_notes.update").await
     }
 
@@ -102,10 +100,8 @@ impl DraftNotesResource {
         mr_iid: u32,
         draft_note_id: u64,
     ) -> Result<(), GitLabError> {
-        let path = format!(
-            "projects/{}/merge_requests/{}/draft_notes/{}",
-            project_id, mr_iid, draft_note_id
-        );
+        let path =
+            format!("projects/{project_id}/merge_requests/{mr_iid}/draft_notes/{draft_note_id}");
         self.http.delete(&path, &[], "draft_notes.delete").await
     }
 
@@ -122,7 +118,9 @@ impl DraftNotesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn publish(&self, project_id: u64, mr_iid: u32) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/merge_requests/{}/draft_notes/publish", project_id, mr_iid);
-        self.http.post(&path, &serde_json::json!({}), "draft_notes.publish").await
+        let path = format!("projects/{project_id}/merge_requests/{mr_iid}/draft_notes/publish");
+        self.http
+            .post(&path, &serde_json::json!({}), "draft_notes.publish")
+            .await
     }
 }

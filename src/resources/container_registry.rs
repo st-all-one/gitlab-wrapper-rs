@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{ContainerRepository, ContainerTag};
 use crate::utils::encoding::encode_query_param;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct ContainerRegistryResource {
 
 impl ContainerRegistryResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -31,8 +31,10 @@ impl ContainerRegistryResource {
         &self,
         project_id: u64,
     ) -> Result<Vec<ContainerRepository>, GitLabError> {
-        let path = format!("projects/{}/registry/repositories", project_id);
-        self.http.get(&path, &[], "container_registry.list_repositories").await
+        let path = format!("projects/{project_id}/registry/repositories");
+        self.http
+            .get(&path, &[], "container_registry.list_repositories")
+            .await
     }
 
     /// Remove um repositório do Container Registry.
@@ -52,8 +54,10 @@ impl ContainerRegistryResource {
         project_id: u64,
         repo_id: u64,
     ) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/registry/repositories/{}", project_id, repo_id);
-        self.http.delete(&path, &[], "container_registry.delete_repository").await
+        let path = format!("projects/{project_id}/registry/repositories/{repo_id}");
+        self.http
+            .delete(&path, &[], "container_registry.delete_repository")
+            .await
     }
 
     /// Lista todas as tags de um repositório do Container Registry.
@@ -73,8 +77,10 @@ impl ContainerRegistryResource {
         project_id: u64,
         repo_id: u64,
     ) -> Result<Vec<ContainerTag>, GitLabError> {
-        let path = format!("projects/{}/registry/repositories/{}/tags", project_id, repo_id);
-        self.http.get(&path, &[], "container_registry.list_tags").await
+        let path = format!("projects/{project_id}/registry/repositories/{repo_id}/tags");
+        self.http
+            .get(&path, &[], "container_registry.list_tags")
+            .await
     }
 
     /// Obtém uma tag específica de um repositório do Container Registry.
@@ -102,7 +108,9 @@ impl ContainerRegistryResource {
             repo_id,
             encode_query_param(tag_name)
         );
-        self.http.get(&path, &[], "container_registry.get_tag").await
+        self.http
+            .get(&path, &[], "container_registry.get_tag")
+            .await
     }
 
     /// Remove uma tag de um repositório do Container Registry.
@@ -130,6 +138,8 @@ impl ContainerRegistryResource {
             repo_id,
             encode_query_param(tag_name)
         );
-        self.http.delete(&path, &[], "container_registry.delete_tag").await
+        self.http
+            .delete(&path, &[], "container_registry.delete_tag")
+            .await
     }
 }

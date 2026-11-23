@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{CreateSystemHookPayload, SystemHook};
 use std::sync::Arc;
 
 /// Recurso de API para operações com system hooks (webhooks globais) no GitLab.
@@ -11,7 +11,7 @@ pub struct SystemHooksResource {
 
 impl SystemHooksResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -40,7 +40,7 @@ impl SystemHooksResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, hook_id: u64) -> Result<SystemHook, GitLabError> {
-        let path = format!("hooks/{}", hook_id);
+        let path = format!("hooks/{hook_id}");
         self.http.get(&path, &[], "system_hooks.get").await
     }
 
@@ -75,7 +75,7 @@ impl SystemHooksResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, hook_id: u64) -> Result<(), GitLabError> {
-        let path = format!("hooks/{}", hook_id);
+        let path = format!("hooks/{hook_id}");
         self.http.delete(&path, &[], "system_hooks.delete").await
     }
 }

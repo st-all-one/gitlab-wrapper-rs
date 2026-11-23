@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{GroupIteration, GroupIterationFilter};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ pub struct GroupIterationsResource {
 
 impl GroupIterationsResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,7 +33,7 @@ impl GroupIterationsResource {
         group_id: u64,
         filter: Option<&GroupIterationFilter>,
     ) -> Result<Vec<GroupIteration>, GitLabError> {
-        let path = format!("groups/{}/iterations", group_id);
+        let path = format!("groups/{group_id}/iterations");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "group_iterations.list").await
     }

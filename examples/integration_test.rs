@@ -2,12 +2,17 @@
 //!
 //! Uso:
 //!   export GITLAB_TOKEN="glpat-xxxx"
-//!   export GITLAB_URL="https://gitlab.com"
-//!   cargo run --example integration_test
+//!   export `GITLAB_URL="https://gitlab.com`"
+//!   cargo run --example `integration_test`
 //!
 //! Modo seguro (read-only): não cria, altera ou remove dados.
+// Exemplo demonstrativo: imprime o progresso e exige GITLAB_TOKEN para executar.
+#![allow(clippy::print_stdout, clippy::expect_used, clippy::too_many_lines)] // suíte manual de endpoints
 
-use gitlab_wrapper::*;
+use gitlab_wrapper::{
+    AuthMethod, CommitFilter, EventFilter, GitLabClient, GitLabConfig, GroupFilter, IssueFilter,
+    JobFilter, MergeRequestFilter, PipelineFilter, ProjectFilter, TodoFilter, UserFilter,
+};
 use std::sync::atomic::{AtomicU32, Ordering};
 
 static PASSED: AtomicU32 = AtomicU32::new(0);
@@ -46,7 +51,7 @@ macro_rules! check_count {
 }
 
 fn bold(s: &str) -> String {
-    format!("\x1b[1m{}\x1b[0m", s)
+    format!("\x1b[1m{s}\x1b[0m")
 }
 
 #[tokio::main]
@@ -68,23 +73,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ..Default::default()
     })?;
 
-    println!("  Conectado a: {}", url);
+    println!("  Conectado a: {url}");
     println!();
 
     // ── 1. USER ──────────────────────────────────────────────────────────
-    println!("{}", bold("━━━ [ 1/8  Users ] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+    println!(
+        "{}",
+        bold("━━━ [ 1/8  Users ] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    );
     let me = gl.users.get_current().await?;
     println!("         👤 {} (@{})", me.name, me.username);
     println!("         🆔 ID: {}", me.id);
-    println!("         📧 Email: {:?}", me.email.as_deref().unwrap_or("não informado"));
-    println!("         🔗 Web: {:?}", me.web_url.as_deref().unwrap_or("n/a"));
+    println!(
+        "         📧 Email: {:?}",
+        me.email.as_deref().unwrap_or("não informado")
+    );
+    println!(
+        "         🔗 Web: {:?}",
+        me.web_url.as_deref().unwrap_or("n/a")
+    );
     PASSED.fetch_add(1, Ordering::Relaxed);
 
     let me_id = me.id;
 
     check!("users.list (filtro por username)", async {
         gl.users
-            .list(Some(&UserFilter { username: Some("root".into()), ..Default::default() }))
+            .list(Some(&UserFilter {
+                username: Some("root".into()),
+                ..Default::default()
+            }))
             .await
     });
     check!("users.status", async { gl.users.status(me_id).await });
@@ -92,7 +109,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // ── 2. PROJECTS ──────────────────────────────────────────────────────
     println!();
-    println!("{}", bold("━━━ [ 2/8  Projects ] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+    println!(
+        "{}",
+        bold("━━━ [ 2/8  Projects ] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    );
 
     let projects = gl
         .projects
@@ -105,53 +125,83 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("         ✅ {} projetos encontrados", projects.len());
     PASSED.fetch_add(1, Ordering::Relaxed);
 
-    let project_id = projects.first().map(|p| p.id).unwrap_or(0);
+    let project_id = projects.first().map_or(0, |p| p.id);
 
     if project_id > 0 {
         let full_path = match gl.projects.get(project_id).await {
             Ok(p) => {
                 println!("         📦 {} (ID: {})", p.name, p.id);
                 PASSED.fetch_add(1, Ordering::Relaxed);
-                format!("{}/{}", p.namespace.as_ref().map(|n| &n.path).unwrap_or(&p.path), p.path)
+                format!(
+                    "{}/{}",
+                    p.namespace.as_ref().map_or(&p.path, |n| &n.path),
+                    p.path
+                )
             }
             Err(e) => {
-                println!("         ❌ projects.get: {}", e);
+                println!("         ❌ projects.get: {e}");
                 FAILED.fetch_add(1, Ordering::Relaxed);
                 String::new()
             }
         };
 
         if !full_path.is_empty() {
-            check!("projects.get_by_path", async { gl.projects.get_by_path(&full_path).await });
+            check!("projects.get_by_path", async {
+                gl.projects.get_by_path(&full_path).await
+            });
         }
     }
 
     // ── 3. GROUPS ────────────────────────────────────────────────────────
     println!();
-    println!("{}", bold("━━━ [ 3/8  Groups ] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+    println!(
+        "{}",
+        bold("━━━ [ 3/8  Groups ] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    );
     check_count!("groups.list", async {
-        gl.groups.list(Some(&GroupFilter { per_page: Some(5), ..Default::default() })).await
+        gl.groups
+            .list(Some(&GroupFilter {
+                per_page: Some(5),
+                ..Default::default()
+            }))
+            .await
     });
 
     // ── 4. PROJECT RESOURCES ─────────────────────────────────────────────
     println!();
     if project_id > 0 {
-        println!("{}", bold("━━━ [ 4/8  Project Resources ] ━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
-        println!("         Projeto ID: {}", project_id);
+        println!(
+            "{}",
+            bold("━━━ [ 4/8  Project Resources ] ━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        );
+        println!("         Projeto ID: {project_id}");
 
-        check_count!("branches.list", async { gl.branches.list(project_id).await });
-        check!("branches.get (main)", async { gl.branches.get(project_id, "main").await });
+        check_count!("branches.list", async {
+            gl.branches.list(project_id).await
+        });
+        check!("branches.get (main)", async {
+            gl.branches.get(project_id, "main").await
+        });
         check_count!("tags.list", async { gl.tags.list(project_id).await });
         check_count!("commits.list", async {
             gl.commits
-                .list(project_id, Some(&CommitFilter { per_page: Some(3), ..Default::default() }))
+                .list(
+                    project_id,
+                    Some(&CommitFilter {
+                        per_page: Some(3),
+                        ..Default::default()
+                    }),
+                )
                 .await
         });
         check_count!("issues.list (by project)", async {
             gl.issues
                 .list_for_project(
                     project_id,
-                    Some(&IssueFilter { per_page: Some(3), ..Default::default() }),
+                    Some(&IssueFilter {
+                        per_page: Some(3),
+                        ..Default::default()
+                    }),
                 )
                 .await
         });
@@ -159,44 +209,82 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             gl.merge_requests
                 .list_for_project(
                     project_id,
-                    Some(&MergeRequestFilter { per_page: Some(3), ..Default::default() }),
+                    Some(&MergeRequestFilter {
+                        per_page: Some(3),
+                        ..Default::default()
+                    }),
                 )
                 .await
         });
-        check_count!("labels.list", async { gl.labels.list_project_labels(project_id).await });
-        check_count!("milestones.list", async {
-            gl.milestones.list_project_milestones(project_id, None).await
+        check_count!("labels.list", async {
+            gl.labels.list_project_labels(project_id).await
         });
-        check_count!("members.list", async { gl.members.list_project_members(project_id).await });
+        check_count!("milestones.list", async {
+            gl.milestones
+                .list_project_milestones(project_id, None)
+                .await
+        });
+        check_count!("members.list", async {
+            gl.members.list_project_members(project_id).await
+        });
         check_count!("events.list (project)", async {
-            gl.events.list(Some(&EventFilter { per_page: Some(3), ..Default::default() })).await
+            gl.events
+                .list(Some(&EventFilter {
+                    per_page: Some(3),
+                    ..Default::default()
+                }))
+                .await
         });
         check_count!("pipelines.list", async {
             gl.pipelines
-                .list(project_id, Some(&PipelineFilter { per_page: Some(3), ..Default::default() }))
+                .list(
+                    project_id,
+                    Some(&PipelineFilter {
+                        per_page: Some(3),
+                        ..Default::default()
+                    }),
+                )
                 .await
         });
         check_count!("jobs.list", async {
             gl.jobs
-                .list(project_id, Some(&JobFilter { per_page: Some(3), ..Default::default() }))
+                .list(
+                    project_id,
+                    Some(&JobFilter {
+                        per_page: Some(3),
+                        ..Default::default()
+                    }),
+                )
                 .await
         });
         check_count!("pipeline_schedules.list", async {
             gl.pipeline_schedules.list(project_id).await
         });
-        check_count!("environments.list", async { gl.environments.list(project_id).await });
-        check_count!("deploy_keys.list", async { gl.deploy_keys.list(project_id).await });
-        check_count!("releases.list", async { gl.releases.list(project_id).await });
+        check_count!("environments.list", async {
+            gl.environments.list(project_id).await
+        });
+        check_count!("deploy_keys.list", async {
+            gl.deploy_keys.list(project_id).await
+        });
+        check_count!("releases.list", async {
+            gl.releases.list(project_id).await
+        });
 
         // Repository Files
         check!("repository_files.get (README.md)", async {
-            gl.repository_files.get(project_id, "README.md", "main").await
+            gl.repository_files
+                .get(project_id, "README.md", "main")
+                .await
         });
         check!("repository_files.raw (README.md)", async {
-            gl.repository_files.raw(project_id, "README.md", "main").await
+            gl.repository_files
+                .raw(project_id, "README.md", "main")
+                .await
         });
         check!("repository_files.blame (README.md)", async {
-            gl.repository_files.blame(project_id, "README.md", "main").await
+            gl.repository_files
+                .blame(project_id, "README.md", "main")
+                .await
         });
 
         // Wikis
@@ -207,37 +295,69 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // ── 5. GLOBAL RESOURCES ──────────────────────────────────────────────
     println!();
-    println!("{}", bold("━━━ [ 5/8  Global Resources ] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+    println!(
+        "{}",
+        bold("━━━ [ 5/8  Global Resources ] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    );
     check_count!("issues.list (global)", async {
-        gl.issues.list(Some(&IssueFilter { per_page: Some(3), ..Default::default() })).await
+        gl.issues
+            .list(Some(&IssueFilter {
+                per_page: Some(3),
+                ..Default::default()
+            }))
+            .await
     });
     check_count!("merge_requests.list (global)", async {
         gl.merge_requests
-            .list(Some(&MergeRequestFilter { per_page: Some(3), ..Default::default() }))
+            .list(Some(&MergeRequestFilter {
+                per_page: Some(3),
+                ..Default::default()
+            }))
             .await
     });
     check_count!("todos.list", async {
-        gl.todos.list(Some(&TodoFilter { per_page: Some(3), ..Default::default() })).await
+        gl.todos
+            .list(Some(&TodoFilter {
+                per_page: Some(3),
+                ..Default::default()
+            }))
+            .await
     });
     check_count!("events.list (global)", async {
-        gl.events.list(Some(&EventFilter { per_page: Some(3), ..Default::default() })).await
+        gl.events
+            .list(Some(&EventFilter {
+                per_page: Some(3),
+                ..Default::default()
+            }))
+            .await
     });
 
     // ── 6. SEARCH ─────────────────────────────────────────────────────────
     println!();
-    println!("{}", bold("━━━ [ 6/8  Search ] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
-    check_count!("search.global (projects)", async { gl.search.global("projects", "test").await });
+    println!(
+        "{}",
+        bold("━━━ [ 6/8  Search ] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    );
+    check_count!("search.global (projects)", async {
+        gl.search.global("projects", "test").await
+    });
 
     // ── 7. NOTES / DISCUSSIONS ───────────────────────────────────────────
     println!();
     if project_id > 0 {
-        println!("{}", bold("━━━ [ 7/8  Notes & Discussions ] ━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+        println!(
+            "{}",
+            bold("━━━ [ 7/8  Notes & Discussions ] ━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        );
         check_count!("notes.list (on first issue)", async {
             let issues = gl
                 .issues
                 .list_for_project(
                     project_id,
-                    Some(&IssueFilter { per_page: Some(1), ..Default::default() }),
+                    Some(&IssueFilter {
+                        per_page: Some(1),
+                        ..Default::default()
+                    }),
                 )
                 .await?;
             if let Some(issue) = issues.first() {
@@ -250,7 +370,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // ── 8. RUNNERS ───────────────────────────────────────────────────────
     println!();
-    println!("{}", bold("━━━ [ 8/8  Runners ] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+    println!(
+        "{}",
+        bold("━━━ [ 8/8  Runners ] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    );
     check_count!("runners.list", async { gl.runners.list().await });
 
     // ── SUMMARY ──────────────────────────────────────────────────────────
@@ -260,8 +383,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("╔══════════════════════════════════════════════════════════════════╗");
     println!("║           Teste de Integração Concluído                         ║");
     println!("╠══════════════════════════════════════════════════════════════════╣");
-    println!("║  ✅ PASSED:  {:<3}                                              ║", passed);
-    println!("║  ❌ FAILED:  {:<3}                                              ║", failed);
+    println!("║  ✅ PASSED:  {passed:<3}                                              ║");
+    println!("║  ❌ FAILED:  {failed:<3}                                              ║");
     println!(
         "║  📦 TOTAL:   {:<3}                                              ║",
         passed + failed
@@ -269,5 +392,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("╚══════════════════════════════════════════════════════════════════╝");
     println!();
 
-    if failed > 0 { Err(format!("{} teste(s) falharam", failed).into()) } else { Ok(()) }
+    if failed > 0 {
+        Err(format!("{failed} teste(s) falharam").into())
+    } else {
+        Ok(())
+    }
 }

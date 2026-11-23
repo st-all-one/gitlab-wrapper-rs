@@ -45,28 +45,42 @@ pub struct GetTokenOptions {
 }
 
 /// Solicita autorização de dispositivo ao GitLab.
+///
+/// ## Errors
+/// Retorna `GitLabError::Api` com `NetworkError` em falha de transporte,
+/// `ParseError` na desserialização ou `AuthorizationDenied` se o GitLab recusar a solicitação.
+#[tracing::instrument(
+    target = "gitlab_wrapper::oauth",
+    skip(options),
+    fields(operation = "oauth.request_device_authorization")
+)]
 pub async fn request_device_authorization(
     options: &DeviceAuthOptions,
 ) -> Result<DeviceAuthResponse, GitLabError> {
     let base = options.base_url.trim_end_matches('/');
-    let url = format!("{}/oauth/authorize_device", base);
+    let url = format!("{base}/oauth/authorize_device");
 
     let mut form = vec![("client_id".to_string(), options.client_id.clone())];
-    if let Some(ref scope) = options.scope {
+    if let Some(scope) = &options.scope {
         form.push(("scope".to_string(), scope.clone()));
     }
 
-    let resp = OAUTH_CLIENT.post(&url).form(&form).send().await.map_err(|e| {
-        GitLabError::api(
-            ErrorCategory::NetworkError,
-            503,
-            format!("Device authorization request failed: {e}"),
-            ErrorContext {
-                operation: Some("oauth.request_device_authorization".into()),
-                ..Default::default()
-            },
-        )
-    })?;
+    let resp = OAUTH_CLIENT
+        .post(&url)
+        .form(&form)
+        .send()
+        .await
+        .map_err(|e| {
+            GitLabError::api(
+                ErrorCategory::NetworkError,
+                503,
+                format!("Device authorization request failed: {e}"),
+                ErrorContext {
+                    operation: Some("oauth.request_device_authorization".into()),
+                    ..Default::default()
+                },
+            )
+        })?;
 
     let status = resp.status();
     if status.is_success() {
@@ -95,9 +109,18 @@ pub async fn request_device_authorization(
 }
 
 /// Consulta o token de acesso após a autorização do dispositivo.
+///
+/// ## Errors
+/// Retorna `GitLabError::Api` com `NetworkError` em falha de transporte,
+/// `ParseError` na desserialização ou `AuthorizationDenied` enquanto a autorização estiver pendente.
+#[tracing::instrument(
+    target = "gitlab_wrapper::oauth",
+    skip(options),
+    fields(operation = "oauth.poll_for_token")
+)]
 pub async fn poll_for_token(options: &PollTokenOptions) -> Result<OAuthTokenResponse, GitLabError> {
     let base = options.base_url.trim_end_matches('/');
-    let url = format!("{}/oauth/token", base);
+    let url = format!("{base}/oauth/token");
 
     let form = vec![
         ("client_id".to_string(), options.client_id.clone()),
@@ -111,14 +134,22 @@ pub async fn poll_for_token(options: &PollTokenOptions) -> Result<OAuthTokenResp
         ),
     ];
 
-    let resp = OAUTH_CLIENT.post(&url).form(&form).send().await.map_err(|e| {
-        GitLabError::api(
-            ErrorCategory::NetworkError,
-            503,
-            format!("Token poll request failed: {e}"),
-            ErrorContext { operation: Some("oauth.poll_for_token".into()), ..Default::default() },
-        )
-    })?;
+    let resp = OAUTH_CLIENT
+        .post(&url)
+        .form(&form)
+        .send()
+        .await
+        .map_err(|e| {
+            GitLabError::api(
+                ErrorCategory::NetworkError,
+                503,
+                format!("Token poll request failed: {e}"),
+                ErrorContext {
+                    operation: Some("oauth.poll_for_token".into()),
+                    ..Default::default()
+                },
+            )
+        })?;
 
     let status = resp.status();
     if status.is_success() {
@@ -150,6 +181,15 @@ pub async fn poll_for_token(options: &PollTokenOptions) -> Result<OAuthTokenResp
 ///
 /// Combina [`request_device_authorization`] e [`poll_for_token`] em um
 /// único loop assíncrono.
+///
+/// ## Errors
+/// Retorna `GitLabError::Api` com `Timeout` se a autorização expirar, propagando
+/// os erros de rede, parsing e autorização das funções de autorização e consulta de token.
+#[tracing::instrument(
+    target = "gitlab_wrapper::oauth",
+    skip(options),
+    fields(operation = "oauth.get_token")
+)]
 pub async fn get_token(options: &GetTokenOptions) -> Result<OAuthTokenResponse, GitLabError> {
     let device_response = request_device_authorization(&DeviceAuthOptions {
         base_url: options.base_url.clone(),
@@ -172,36 +212,24 @@ pub async fn get_token(options: &GetTokenOptions) -> Result<OAuthTokenResponse, 
                 ErrorCategory::Timeout,
                 504,
                 "Device authorization timed out",
-                ErrorContext { operation: Some("oauth.get_token".into()), ..Default::default() },
+                ErrorContext {
+                    operation: Some("oauth.get_token".into()),
+                    ..Default::default()
+                },
             ));
         }
 
         tokio::time::sleep(interval).await;
 
-        match poll_for_token(&PollTokenOptions {
+        let result = poll_for_token(&PollTokenOptions {
             base_url: options.base_url.clone(),
             client_id: options.client_id.clone(),
             device_code: device_response.device_code.clone(),
             grant_type: None,
         })
-        .await
-        {
-            Ok(token) => return Ok(token),
-            Err(ref err) if is_authorization_pending(err) => continue,
-            Err(_) => continue,
+        .await;
+        if let Ok(token) = result {
+            return Ok(token);
         }
     }
-}
-
-/// Verifica se o erro retornado indica que a autorização do dispositivo
-/// ainda está pendente.
-fn is_authorization_pending(err: &GitLabError) -> bool {
-    if let GitLabError::Api { context, .. } = err {
-        if let Some(ref body) = context.response_body {
-            if let Ok(val) = serde_json::from_str::<serde_json::Value>(body) {
-                return val.get("error").and_then(|v| v.as_str()) == Some("authorization_pending");
-            }
-        }
-    }
-    false
 }

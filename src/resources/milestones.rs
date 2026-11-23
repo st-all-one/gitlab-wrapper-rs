@@ -1,6 +1,8 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{
+    CreateMilestonePayload, Issue, MergeRequest, Milestone, MilestoneFilter, UpdateMilestonePayload,
+};
 use crate::utils::encoding::filter_to_query;
 use std::sync::Arc;
 
@@ -12,7 +14,7 @@ pub struct MilestonesResource {
 
 impl MilestonesResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -33,9 +35,11 @@ impl MilestonesResource {
         project_id: u64,
         filter: Option<&MilestoneFilter>,
     ) -> Result<Vec<Milestone>, GitLabError> {
-        let path = format!("projects/{}/milestones", project_id);
+        let path = format!("projects/{project_id}/milestones");
         let query = filter_to_query(filter);
-        self.http.get(&path, &query, "milestones.list_project").await
+        self.http
+            .get(&path, &query, "milestones.list_project")
+            .await
     }
 
     /// Obtém um milestone de projeto pelo ID.
@@ -55,7 +59,7 @@ impl MilestonesResource {
         project_id: u64,
         milestone_id: u64,
     ) -> Result<Milestone, GitLabError> {
-        let path = format!("projects/{}/milestones/{}", project_id, milestone_id);
+        let path = format!("projects/{project_id}/milestones/{milestone_id}");
         self.http.get(&path, &[], "milestones.get_project").await
     }
 
@@ -76,8 +80,10 @@ impl MilestonesResource {
         project_id: u64,
         payload: &CreateMilestonePayload,
     ) -> Result<Milestone, GitLabError> {
-        let path = format!("projects/{}/milestones", project_id);
-        self.http.post(&path, &payload, "milestones.create_project").await
+        let path = format!("projects/{project_id}/milestones");
+        self.http
+            .post(&path, &payload, "milestones.create_project")
+            .await
     }
 
     /// Atualiza um milestone de projeto.
@@ -99,8 +105,10 @@ impl MilestonesResource {
         milestone_id: u64,
         payload: &UpdateMilestonePayload,
     ) -> Result<Milestone, GitLabError> {
-        let path = format!("projects/{}/milestones/{}", project_id, milestone_id);
-        self.http.put(&path, &payload, "milestones.update_project").await
+        let path = format!("projects/{project_id}/milestones/{milestone_id}");
+        self.http
+            .put(&path, &payload, "milestones.update_project")
+            .await
     }
 
     /// Remove um milestone de projeto.
@@ -120,8 +128,10 @@ impl MilestonesResource {
         project_id: u64,
         milestone_id: u64,
     ) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/milestones/{}", project_id, milestone_id);
-        self.http.delete(&path, &[], "milestones.delete_project").await
+        let path = format!("projects/{project_id}/milestones/{milestone_id}");
+        self.http
+            .delete(&path, &[], "milestones.delete_project")
+            .await
     }
 
     /// Lista issues associadas a um milestone de projeto.
@@ -141,8 +151,10 @@ impl MilestonesResource {
         project_id: u64,
         milestone_id: u64,
     ) -> Result<Vec<Issue>, GitLabError> {
-        let path = format!("projects/{}/milestones/{}/issues", project_id, milestone_id);
-        self.http.get(&path, &[], "milestones.list_project_issues").await
+        let path = format!("projects/{project_id}/milestones/{milestone_id}/issues");
+        self.http
+            .get(&path, &[], "milestones.list_project_issues")
+            .await
     }
 
     /// Lista merge requests associados a um milestone de projeto.
@@ -162,8 +174,10 @@ impl MilestonesResource {
         project_id: u64,
         milestone_id: u64,
     ) -> Result<Vec<MergeRequest>, GitLabError> {
-        let path = format!("projects/{}/milestones/{}/merge_requests", project_id, milestone_id);
-        self.http.get(&path, &[], "milestones.list_project_merge_requests").await
+        let path = format!("projects/{project_id}/milestones/{milestone_id}/merge_requests");
+        self.http
+            .get(&path, &[], "milestones.list_project_merge_requests")
+            .await
     }
 
     /// Lista milestones de um grupo com filtros opcionais.
@@ -183,7 +197,7 @@ impl MilestonesResource {
         group_id: u64,
         filter: Option<&MilestoneFilter>,
     ) -> Result<Vec<Milestone>, GitLabError> {
-        let path = format!("groups/{}/milestones", group_id);
+        let path = format!("groups/{group_id}/milestones");
         let query = filter_to_query(filter);
         self.http.get(&path, &query, "milestones.list_group").await
     }
@@ -205,7 +219,7 @@ impl MilestonesResource {
         group_id: u64,
         milestone_id: u64,
     ) -> Result<Milestone, GitLabError> {
-        let path = format!("groups/{}/milestones/{}", group_id, milestone_id);
+        let path = format!("groups/{group_id}/milestones/{milestone_id}");
         self.http.get(&path, &[], "milestones.get_group").await
     }
 
@@ -226,8 +240,10 @@ impl MilestonesResource {
         group_id: u64,
         payload: &CreateMilestonePayload,
     ) -> Result<Milestone, GitLabError> {
-        let path = format!("groups/{}/milestones", group_id);
-        self.http.post(&path, &payload, "milestones.create_group").await
+        let path = format!("groups/{group_id}/milestones");
+        self.http
+            .post(&path, &payload, "milestones.create_group")
+            .await
     }
 
     /// Atualiza um milestone de grupo.
@@ -249,8 +265,10 @@ impl MilestonesResource {
         milestone_id: u64,
         payload: &UpdateMilestonePayload,
     ) -> Result<Milestone, GitLabError> {
-        let path = format!("groups/{}/milestones/{}", group_id, milestone_id);
-        self.http.put(&path, &payload, "milestones.update_group").await
+        let path = format!("groups/{group_id}/milestones/{milestone_id}");
+        self.http
+            .put(&path, &payload, "milestones.update_group")
+            .await
     }
 
     /// Remove um milestone de grupo.
@@ -270,8 +288,10 @@ impl MilestonesResource {
         group_id: u64,
         milestone_id: u64,
     ) -> Result<(), GitLabError> {
-        let path = format!("groups/{}/milestones/{}", group_id, milestone_id);
-        self.http.delete(&path, &[], "milestones.delete_group").await
+        let path = format!("groups/{group_id}/milestones/{milestone_id}");
+        self.http
+            .delete(&path, &[], "milestones.delete_group")
+            .await
     }
 
     /// Lista issues associadas a um milestone de grupo.
@@ -291,8 +311,10 @@ impl MilestonesResource {
         group_id: u64,
         milestone_id: u64,
     ) -> Result<Vec<Issue>, GitLabError> {
-        let path = format!("groups/{}/milestones/{}/issues", group_id, milestone_id);
-        self.http.get(&path, &[], "milestones.list_group_issues").await
+        let path = format!("groups/{group_id}/milestones/{milestone_id}/issues");
+        self.http
+            .get(&path, &[], "milestones.list_group_issues")
+            .await
     }
 
     /// Lista merge requests associados a um milestone de grupo.
@@ -312,7 +334,9 @@ impl MilestonesResource {
         group_id: u64,
         milestone_id: u64,
     ) -> Result<Vec<MergeRequest>, GitLabError> {
-        let path = format!("groups/{}/milestones/{}/merge_requests", group_id, milestone_id);
-        self.http.get(&path, &[], "milestones.list_group_merge_requests").await
+        let path = format!("groups/{group_id}/milestones/{milestone_id}/merge_requests");
+        self.http
+            .get(&path, &[], "milestones.list_group_merge_requests")
+            .await
     }
 }

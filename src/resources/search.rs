@@ -1,6 +1,6 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::SearchResultItem;
 use std::sync::Arc;
 
 /// Recurso de API para operações de pesquisa no GitLab.
@@ -11,14 +11,14 @@ pub struct SearchResource {
 
 impl SearchResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
     /// Pesquisa globalmente em todo o GitLab.
     ///
     /// ## Params
-    /// - `scope`: Escopo da pesquisa (ex: "projects", "issues", "merge_requests").
+    /// - `scope`: Escopo da pesquisa (ex: "projects", "issues", "`merge_requests`").
     /// - `search`: Termo de pesquisa.
     ///
     /// ## Returns
@@ -43,7 +43,7 @@ impl SearchResource {
     ///
     /// ## Params
     /// - `group_id`: ID do grupo no GitLab.
-    /// - `scope`: Escopo da pesquisa (ex: "projects", "issues", "merge_requests").
+    /// - `scope`: Escopo da pesquisa (ex: "projects", "issues", "`merge_requests`").
     /// - `search`: Termo de pesquisa.
     ///
     /// ## Returns
@@ -58,7 +58,7 @@ impl SearchResource {
         scope: &str,
         search: &str,
     ) -> Result<Vec<SearchResultItem>, GitLabError> {
-        let path = format!("groups/{}/search", group_id);
+        let path = format!("groups/{group_id}/search");
         let query = vec![
             ("scope".to_string(), scope.to_string()),
             ("search".to_string(), search.to_string()),
@@ -70,7 +70,7 @@ impl SearchResource {
     ///
     /// ## Params
     /// - `project_id`: ID do projeto no GitLab.
-    /// - `scope`: Escopo da pesquisa (ex: "issues", "merge_requests", "milestones").
+    /// - `scope`: Escopo da pesquisa (ex: "issues", "`merge_requests`", "milestones").
     /// - `search`: Termo de pesquisa.
     ///
     /// ## Returns
@@ -85,7 +85,7 @@ impl SearchResource {
         scope: &str,
         search: &str,
     ) -> Result<Vec<SearchResultItem>, GitLabError> {
-        let path = format!("projects/{}/search", project_id);
+        let path = format!("projects/{project_id}/search");
         let query = vec![
             ("scope".to_string(), scope.to_string()),
             ("search".to_string(), search.to_string()),

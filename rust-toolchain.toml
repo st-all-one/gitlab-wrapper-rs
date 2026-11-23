@@ -1,0 +1,6 @@
+# Toolchain do gitlab-wrapper-rs — Rust 1.100 (canal minor: resolve o último patch).
+# Contrato de MSRV: `rust-version` no Cargo.toml, `msrv` no clippy.toml e `channel` aqui.
+[toolchain]
+channel = "1.100"
+components = ["clippy", "rustfmt"]
+profile = "minimal"

@@ -1,6 +1,8 @@
 use crate::core::errors::GitLabError;
 use crate::http::client::HttpClient;
-use crate::types::*;
+use crate::types::{
+    CreateReleaseLinkPayload, CreateReleasePayload, Release, ReleaseLinkItem, UpdateReleasePayload,
+};
 use crate::utils::encoding::encode_query_param;
 use std::sync::Arc;
 
@@ -12,7 +14,7 @@ pub struct ReleasesResource {
 
 impl ReleasesResource {
     /// Cria uma nova instância do recurso.
-    pub(crate) fn new(http: Arc<HttpClient>) -> Self {
+    pub(crate) const fn new(http: Arc<HttpClient>) -> Self {
         Self { http }
     }
 
@@ -28,7 +30,7 @@ impl ReleasesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn list(&self, project_id: u64) -> Result<Vec<Release>, GitLabError> {
-        let path = format!("projects/{}/releases", project_id);
+        let path = format!("projects/{project_id}/releases");
         self.http.get(&path, &[], "releases.list").await
     }
 
@@ -45,7 +47,11 @@ impl ReleasesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get(&self, project_id: u64, tag_name: &str) -> Result<Release, GitLabError> {
-        let path = format!("projects/{}/releases/{}", project_id, encode_query_param(tag_name));
+        let path = format!(
+            "projects/{}/releases/{}",
+            project_id,
+            encode_query_param(tag_name)
+        );
         self.http.get(&path, &[], "releases.get").await
     }
 
@@ -66,7 +72,7 @@ impl ReleasesResource {
         project_id: u64,
         payload: &CreateReleasePayload,
     ) -> Result<Release, GitLabError> {
-        let path = format!("projects/{}/releases", project_id);
+        let path = format!("projects/{project_id}/releases");
         self.http.post(&path, &payload, "releases.create").await
     }
 
@@ -89,7 +95,11 @@ impl ReleasesResource {
         tag_name: &str,
         payload: &UpdateReleasePayload,
     ) -> Result<Release, GitLabError> {
-        let path = format!("projects/{}/releases/{}", project_id, encode_query_param(tag_name));
+        let path = format!(
+            "projects/{}/releases/{}",
+            project_id,
+            encode_query_param(tag_name)
+        );
         self.http.put(&path, &payload, "releases.update").await
     }
 
@@ -106,7 +116,11 @@ impl ReleasesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn delete(&self, project_id: u64, tag_name: &str) -> Result<(), GitLabError> {
-        let path = format!("projects/{}/releases/{}", project_id, encode_query_param(tag_name));
+        let path = format!(
+            "projects/{}/releases/{}",
+            project_id,
+            encode_query_param(tag_name)
+        );
         self.http.delete(&path, &[], "releases.delete").await
     }
 
@@ -134,7 +148,9 @@ impl ReleasesResource {
             project_id,
             encode_query_param(tag_name)
         );
-        self.http.post(&path, &payload, "releases.create_link").await
+        self.http
+            .post(&path, &payload, "releases.create_link")
+            .await
     }
 
     /// Remove um link de asset de uma release.
@@ -269,7 +285,7 @@ impl ReleasesResource {
     /// Retorna `GitLabError` em caso de falha de rede, autenticação (401),
     /// permissão (403), recurso não encontrado (404), ou validação (422).
     pub async fn get_latest(&self, project_id: u64) -> Result<Release, GitLabError> {
-        let path = format!("projects/{}/releases/permalink/latest", project_id);
+        let path = format!("projects/{project_id}/releases/permalink/latest");
         self.http.get(&path, &[], "releases.get_latest").await
     }
 
