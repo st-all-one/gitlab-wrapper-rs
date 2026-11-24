@@ -580,16 +580,21 @@ fn config_check_uses_profile_token_file_over_base_token() -> TestResult {
     let config = fixture("profile-token-file.toml");
     let config = config.to_str().expect("caminho UTF-8");
 
-    let out = run(
-        &home,
-        &["--config", config, "--profile", "ci", "config", "check"],
-    )?;
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut command = glw(&home);
+    command.current_dir(repo_root);
+    let out = command
+        .args(["--config", config, "--profile", "ci", "config", "check"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()?;
     let text = stdout(&out);
     assert!(out.status.success(), "stderr: {}", stderr(&out));
     assert!(text.contains("profile: ci"), "saída: {text}");
     assert!(text.contains("token: set"), "saída: {text}");
     assert!(
-        text.contains("base_url: https://ci.example.com"),
+        text.contains("base_url: https://base.example.com"),
         "saída: {text}"
     );
     Ok(())

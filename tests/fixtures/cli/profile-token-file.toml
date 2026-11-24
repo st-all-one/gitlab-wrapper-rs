@@ -2,5 +2,4 @@ base_url = "https://base.example.com"
 token = "token-from-base"
 
 [profiles.ci]
-base_url = "https://ci.example.com"
-token_file = "/home/one/projects/one/gitlab-wrapper-rs/tests/fixtures/cli/token.txt"
+token_file = "tests/fixtures/cli/token.txt"
