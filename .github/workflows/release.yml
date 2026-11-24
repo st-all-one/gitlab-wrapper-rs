@@ -1,0 +1,156 @@
+# Release workflow
+#
+# Roda quando uma tag v* é enviada (git push --tags). Para cada arquitetura
+# compila o binário `glw` com o profile release, empacota num tarball/zip com
+# sha256sums.txt e publica como GitHub Release vinculado à tag.
+#
+# A versão da tag precisa ser igual à versão do crate no Cargo.toml
+# (exceto em workflow_dispatch, usado para testes).
+#
+# Alvos publicados (mesmo conjunto do sniff-css):
+#   x86_64-unknown-linux-gnu
+#   x86_64-unknown-linux-musl
+#   aarch64-unknown-linux-gnu
+#   aarch64-unknown-linux-musl
+#   aarch64-apple-darwin
+#   x86_64-pc-windows-msvc
+
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            cmd: cargo
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            cmd: cross
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+            cmd: cargo
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            cmd: cross
+          - target: aarch64-apple-darwin
+            os: macos-15
+            cmd: cargo
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            cmd: cargo
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validar versão da tag contra o workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" != "push" ]; then
+            echo "workflow_dispatch: pulando validação de tag"
+            exit 0
+          fi
+          version="${GITHUB_REF_NAME#v}"
+          pkg="$(cargo metadata --no-deps --format-version 1 \
+            | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(p["version"] for p in d["packages"] if p["name"] == "gitlab-wrapper-rs"))')"
+          [ "$version" = "$pkg" ] || {
+            echo "Tag v$version != versão do workspace $pkg" >&2
+            exit 1
+          }
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.100
+
+      - name: Add target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Install cross (for cross-compiled targets)
+        if: matrix.cmd == 'cross'
+        uses: taiki-e/install-action@cross
+
+      - name: Build (cross)
+        if: matrix.cmd == 'cross'
+        run: cross build --release --locked --bin glw --target ${{ matrix.target }}
+
+      - name: Build (native/cargo)
+        if: matrix.cmd == 'cargo'
+        run: cargo build --release --locked --bin glw --target ${{ matrix.target }}
+
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          TARGET="${{ matrix.target }}"
+          if [ "$GITHUB_EVENT_NAME" != "push" ]; then
+            VERSION="${VERSION:-0.0.0-dispatch}"
+          fi
+          STAGING="staging"
+          mkdir -p "$STAGING"
+          if command -v sha256sum >/dev/null 2>&1; then
+            SHA="sha256sum"
+          else
+            SHA="shasum -a 256"
+          fi
+          if [[ "$TARGET" == *-pc-windows-* ]]; then
+            cp "target/$TARGET/release/glw" "$STAGING/glw.exe"
+            ( cd "$STAGING" && tar -a -c -f "../gitlab-wrapper-rs-${VERSION}-${TARGET}.zip" . )
+            ( cd "$STAGING" && $SHA glw.exe ) > "checksums-${TARGET}.sha256"
+          else
+            cp "target/$TARGET/release/glw" "$STAGING/glw"
+            tar -czf "gitlab-wrapper-rs-${VERSION}-${TARGET}.tar.gz" -C "$STAGING" glw
+            ( cd "$STAGING" && $SHA glw ) > "checksums-${TARGET}.sha256"
+          fi
+
+      - name: Upload binaries (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitlab-wrapper-rs-${{ matrix.target }}
+          path: |
+            gitlab-wrapper-rs-*.*
+            checksums-*.sha256
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Build sha256sums.txt
+        run: |
+          cd dist
+          for f in gitlab-wrapper-rs-*.tar.gz gitlab-wrapper-rs-*.zip; do
+            [ -f "$f" ] && sha256sum "$f"
+          done > sha256sums.txt
+          cat sha256sums.txt
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*
+          generate_release_notes: true

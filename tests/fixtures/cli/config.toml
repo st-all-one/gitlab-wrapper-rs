@@ -1,0 +1,9 @@
+base_url = "https://from-config.example.com"
+token = "token-from-config"
+auth_method = "header"
+timeout_secs = 7
+max_rps = 3
+
+[profiles.ci]
+base_url = "https://ci.example.com"
+token = "token-from-ci-profile"

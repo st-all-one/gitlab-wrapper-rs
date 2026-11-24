@@ -1,0 +1,2 @@
+{"op":"whoami","args":{},"params":{}}
+{"op":"projects.list","args":{},"params":{"per_page":5,"page":2}}

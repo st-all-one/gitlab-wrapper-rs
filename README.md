@@ -410,6 +410,61 @@ As funções auxiliares OAuth criam seu próprio cliente HTTP via `LazyLock<Clie
 **não passam pelo rate limiter** do `HttpClient`. Fluxos OAuth são chamados
 esporadicamente, então isso raramente é um problema.
 
+
+---
+## 🖥️ CLI `glw`
+
+### Instalação oficial
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf \
+  https://raw.githubusercontent.com/st-all-one/gitlab-wrapper-rs/main/install.sh | sh
+```
+
+O instalador detecta OS/arquitetura/libc, baixa o asset correto do GitHub
+Release, verifica SHA-256 e instala `glw` em `~/.local/bin`. Para fixar uma
+versão ou outro destino:
+
+```bash
+curl ... | VERSION=v0.3.0 sh
+curl ... | INSTALL_DIR=/usr/local/bin sh
+```
+
+Alvos publicados: `x86_64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`,
+`aarch64-unknown-linux-gnu`, `aarch64-unknown-linux-musl`,
+`aarch64-apple-darwin`, `x86_64-pc-windows-msvc`.
+
+Versão atual: **0.3.0** — grande atualização: CLI `glw`, `glw prime`, help
+contextual, `--params`, batch NDJSON, perfis de credencial e instalador
+oficial. A versão do crate, do binário e da tag de release são iguais.
+
+### Uso
+
+O binário `glw` oferece consultas rápidas à API GitLab via stdin/stdout, com
+verbos por recurso, `--params`, lote NDJSON e configuração por arquivo/env.
+
+Credenciais são resolvidas na inicialização de cada comando. Em uso diário,
+configure `~/.config/glw/config.toml` com `base_url` e `token_file`; em CI,
+use `GLW_TOKEN` e `GLW_BASE_URL`. Também há `--token`, `--token-file` (incluindo
+`@-` para ler do stdin) e perfis com `--profile`.
+
+```bash
+glw config check
+glw whoami
+printf 'glpat-xxxx\n' | glw --token-file @- whoami
+glw projects list --params 'search=api,per_page=5'
+glw batch <<'EOF'
+{"op":"whoami","args":{},"params":{}}
+EOF
+```
+
+Documentação completa, precedência de credenciais e momentos de uso:
+[`docs/cli.md`](docs/cli.md).
+
+Use `glw prime` para o protocolo estático (help para agentes) e
+`glw help <verbo>` para ajuda contextual. Quando faltar um parâmetro, a CLI
+mostra o uso correto e aponta para o help do verbo.
+
 ---
 
 ## 📋 Pré-requisitos
@@ -426,3 +481,39 @@ esporadicamente, então isso raramente é um problema.
 **Licença:** Mozilla Public License v2.0 (MPL-2.0) — veja o arquivo [`LICENSE`](./LICENSE)
 
 </div>
+
+## 🚀 Release e versionamento
+
+Os binários são publicados por GitHub Actions quando uma tag `vX.Y.Z` é
+enviada. O workflow `.github/workflows/release.yml`:
+
+1. exige que `X.Y.Z` seja igual à versão em `Cargo.toml`;
+2. compila `glw --release --locked` para os seis alvos publicados;
+3. gera `sha256sums.txt`;
+4. publica tudo como GitHub Release com notas automáticas.
+
+A minor atual é **0.3.0**. Ela representa a grande atualização da CLI:
+instalador oficial, `prime`, help contextual, credenciais via arquivo/env/stdin,
+`--params` e operações em lote. Para liberar:
+
+```bash
+git tag v0.3.0
+git push origin v0.3.0
+```
+
+Para instalar uma versão específica:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf \
+  https://raw.githubusercontent.com/st-all-one/gitlab-wrapper-rs/main/install.sh \
+  | VERSION=v0.3.0 sh
+```
+
+### Notas operacionais do release
+
+- O asset Linux/macOS é `.tar.gz`; o asset Windows é `.zip`.
+- Cada tarball contém apenas `glw` (ou `glw.exe`).
+- `sha256sums.txt` é gerado no diretório `dist/` com todos os assets.
+- O instalador reusa a versão instalada quando ela já corresponde à tag.
+- Para testar localmente sem publicar, use `workflow_dispatch` no GitHub Actions;
+  a validação de tag é pulada nesse modo.
